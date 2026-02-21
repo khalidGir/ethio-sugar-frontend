@@ -1,7 +1,10 @@
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useGetIncidentsQuery, useCreateIncidentMutation, useUpdateIncidentStatusMutation } from '../../services/api';
+import {
+  useGetIncidentsQuery, useCreateIncidentMutation, useUpdateIncidentStatusMutation,
+} from '../../services/api';
 import { useGetFieldsQuery } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -9,6 +12,7 @@ import { ErrorMessage } from '../../components/ErrorMessage';
 import { EmptyState } from '../../components/EmptyState';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Layout } from '../../components/Layout';
+import { AlertTriangle, Plus, ChevronDown } from 'lucide-react';
 
 const incidentSchema = z.object({
   fieldId: z.string().min(1, 'Field is required'),
@@ -19,6 +23,25 @@ const incidentSchema = z.object({
 
 type IncidentFormData = z.infer<typeof incidentSchema>;
 
+const incidentStatusStyle: Record<string, string> = {
+  OPEN: 'bg-red-100 text-red-800 border border-red-200',
+  IN_PROGRESS: 'bg-amber-100 text-amber-800 border border-amber-200',
+  RESOLVED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+};
+
+const rowBgBySeverity: Record<string, string> = {
+  CRITICAL: 'bg-red-50/60',
+  WARNING: 'bg-amber-50/40',
+  NORMAL: '',
+};
+
+const SelectWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="relative">
+    {children}
+    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+  </div>
+);
+
 export const IncidentsPage: React.FC = () => {
   const { user } = useAuth();
   const { data: fields } = useGetFieldsQuery();
@@ -26,218 +49,178 @@ export const IncidentsPage: React.FC = () => {
   const [createIncident] = useCreateIncidentMutation();
   const [updateIncidentStatus] = useUpdateIncidentStatusMutation();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<IncidentFormData>({
-    resolver: zodResolver(incidentSchema),
-  });
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } =
+    useForm<IncidentFormData>({ resolver: zodResolver(incidentSchema) });
 
   const onSubmit = async (data: IncidentFormData) => {
     try {
       await createIncident(data).unwrap();
       reset();
       refetch();
-    } catch (err) {
-      // Error handled by RTK Query
-    }
+    } catch { }
   };
 
   const handleStatusUpdate = async (id: string, status: string) => {
     try {
       await updateIncidentStatus({ id, status }).unwrap();
       refetch();
-    } catch (err) {
-      // Error handled by RTK Query
-    }
+    } catch { }
   };
 
-  const isWorker = user?.role === 'WORKER';
   const isSupervisorOrAdmin = user?.role === 'SUPERVISOR' || user?.role === 'ADMIN';
+  const isWorker = user?.role === 'WORKER';
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <LoadingSpinner />
-      </Layout>
-    );
-  }
+  if (isLoading) return <Layout><LoadingSpinner fullPage /></Layout>;
 
   if (error) {
     return (
       <Layout>
-        <ErrorMessage message="Failed to load incidents" onRetry={() => window.location.reload()} />
+        <div className="p-2">
+          <ErrorMessage message="Failed to load incidents" onRetry={() => window.location.reload()} />
+        </div>
       </Layout>
     );
   }
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-800">Incidents</h1>
+      <div className="space-y-6 animate-fade-in">
+        <h1 className="page-header">Incidents</h1>
 
-        {/* Create Incident Form - Worker & Supervisor & Admin */}
-        {!isWorker || isWorker ? (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              {isWorker ? 'Report New Incident' : 'Create New Incident'}
-            </h2>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Report Form */}
+        <div className="card border-l-4 border-l-forest-500">
+          <h2 className="section-title flex items-center gap-2 mb-5">
+            <Plus className="w-4 h-4 text-forest-500" />
+            {isWorker ? 'Report Incident' : 'Create Incident'}
+          </h2>
+
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* Field */}
               <div>
-                <label htmlFor="fieldId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Field
-                </label>
-                <select
-                  id="fieldId"
-                  {...register('fieldId')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select a field</option>
-                  {fields?.map((field) => (
-                    <option key={field.id} value={field.id}>
-                      {field.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.fieldId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.fieldId.message}</p>
-                )}
+                <label htmlFor="fieldId" className="label">Field</label>
+                <SelectWrapper>
+                  <select id="fieldId" {...register('fieldId')} className="select-field">
+                    <option value="">Select a field</option>
+                    {fields?.map((f) => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
+                    ))}
+                  </select>
+                </SelectWrapper>
+                {errors.fieldId && <p className="field-error">⚠ {errors.fieldId.message}</p>}
               </div>
 
+              {/* Type */}
               <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-                  Type
-                </label>
-                <select
-                  id="type"
-                  {...register('type')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select type</option>
-                  <option value="Pest Infestation">Pest Infestation</option>
-                  <option value="Disease Outbreak">Disease Outbreak</option>
-                  <option value="Irrigation Issue">Irrigation Issue</option>
-                  <option value="Equipment Failure">Equipment Failure</option>
-                  <option value="Other">Other</option>
-                </select>
-                {errors.type && (
-                  <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>
-                )}
+                <label htmlFor="type" className="label">Type</label>
+                <SelectWrapper>
+                  <select id="type" {...register('type')} className="select-field">
+                    <option value="">Select type</option>
+                    <option value="Pest Infestation">Pest Infestation</option>
+                    <option value="Disease Outbreak">Disease Outbreak</option>
+                    <option value="Irrigation Issue">Irrigation Issue</option>
+                    <option value="Equipment Failure">Equipment Failure</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </SelectWrapper>
+                {errors.type && <p className="field-error">⚠ {errors.type.message}</p>}
               </div>
 
+              {/* Severity */}
               <div>
-                <label htmlFor="severity" className="block text-sm font-medium text-gray-700 mb-1">
-                  Severity
-                </label>
-                <select
-                  id="severity"
-                  {...register('severity')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select severity</option>
-                  <option value="NORMAL">Normal</option>
-                  <option value="WARNING">Warning</option>
-                  <option value="CRITICAL">Critical</option>
-                </select>
-                {errors.severity && (
-                  <p className="mt-1 text-sm text-red-600">{errors.severity.message}</p>
-                )}
+                <label htmlFor="severity" className="label">Severity</label>
+                <SelectWrapper>
+                  <select id="severity" {...register('severity')} className="select-field">
+                    <option value="">Select severity</option>
+                    <option value="NORMAL">Normal</option>
+                    <option value="WARNING">Warning</option>
+                    <option value="CRITICAL">Critical</option>
+                  </select>
+                </SelectWrapper>
+                {errors.severity && <p className="field-error">⚠ {errors.severity.message}</p>}
               </div>
+            </div>
 
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  {...register('description')}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe the incident..."
-                />
-                {errors.description && (
-                  <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-                )}
-              </div>
+            {/* Description */}
+            <div className="mb-5">
+              <label htmlFor="description" className="label">Description</label>
+              <textarea
+                id="description"
+                {...register('description')}
+                rows={3}
+                className="input-field resize-none"
+                placeholder="Describe the incident in detail..."
+              />
+              {errors.description && <p className="field-error">⚠ {errors.description.message}</p>}
+            </div>
 
-              <button
-                type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Submit Incident
-              </button>
-            </form>
-          </div>
-        ) : null}
+            <button type="submit" disabled={isSubmitting} className="btn-primary flex items-center gap-2">
+              {isSubmitting
+                ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <Plus className="w-4 h-4" />
+              }
+              Submit Incident
+            </button>
+          </form>
+        </div>
 
-        {/* Incidents List */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+        {/* Incidents Table */}
+        <div className="card">
+          <h2 className="section-title flex items-center gap-2 mb-5">
+            <AlertTriangle className="w-4 h-4 text-red-500" />
             {isWorker ? 'My Incidents' : 'All Incidents'}
           </h2>
 
           {!incidents || incidents.length === 0 ? (
-            <EmptyState message="No incidents reported" />
+            <EmptyState message="No incidents reported" description="Reports you file will appear here" />
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-gray-100">
               <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Field</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Type</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Severity</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Status</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Date</th>
-                    {isSupervisorOrAdmin && (
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Actions</th>
-                    )}
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="table-header">Field</th>
+                    <th className="table-header">Type</th>
+                    <th className="table-header">Severity</th>
+                    <th className="table-header">Status</th>
+                    <th className="table-header">Date</th>
+                    {isSupervisorOrAdmin && <th className="table-header">Action</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {incidents.map((incident) => (
-                    <tr key={incident.id} className="border-b border-gray-100">
-                      <td className="py-3 px-4 text-sm text-gray-800">
-                        {incident.fieldName || incident.fieldId}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-800">{incident.type}</td>
-                      <td className="py-3 px-4">
-                        <StatusBadge status={incident.severity} size="sm" />
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center font-medium rounded-full px-2 py-0.5 text-xs ${
-                            incident.status === 'OPEN'
-                              ? 'bg-red-100 text-red-800'
-                              : incident.status === 'IN_PROGRESS'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {incident.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-600">
-                        {new Date(incident.createdAt).toLocaleDateString()}
-                      </td>
-                      {isSupervisorOrAdmin && (
-                        <td className="py-3 px-4">
-                          <select
-                            value={incident.status}
-                            onChange={(e) =>
-                              handleStatusUpdate(incident.id, e.target.value)
-                            }
-                            className="text-sm border border-gray-300 rounded px-2 py-1"
-                          >
-                            <option value="OPEN">Open</option>
-                            <option value="IN_PROGRESS">In Progress</option>
-                            <option value="RESOLVED">Resolved</option>
-                          </select>
+                  {incidents.map((incident) => {
+                    const rowBg = rowBgBySeverity[incident.severity] ?? '';
+                    return (
+                      <tr key={incident.id} className={`table-row ${rowBg}`}>
+                        <td className="table-cell font-medium">{incident.fieldName || incident.fieldId}</td>
+                        <td className="table-cell">{incident.type}</td>
+                        <td className="table-cell"><StatusBadge status={incident.severity} size="sm" /></td>
+                        <td className="table-cell">
+                          <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${incidentStatusStyle[incident.status] ?? 'bg-gray-100 text-gray-700'
+                            }`}>
+                            {incident.status.replace('_', ' ')}
+                          </span>
                         </td>
-                      )}
-                    </tr>
-                  ))}
+                        <td className="table-cell text-gray-500">
+                          {new Date(incident.createdAt).toLocaleDateString('en-US', {
+                            month: 'short', day: 'numeric', year: 'numeric'
+                          })}
+                        </td>
+                        {isSupervisorOrAdmin && (
+                          <td className="table-cell">
+                            <select
+                              value={incident.status}
+                              onChange={(e) => handleStatusUpdate(incident.id, e.target.value)}
+                              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-forest-400 cursor-pointer"
+                            >
+                              <option value="OPEN">Open</option>
+                              <option value="IN_PROGRESS">In Progress</option>
+                              <option value="RESOLVED">Resolved</option>
+                            </select>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
