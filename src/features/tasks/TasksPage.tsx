@@ -7,8 +7,36 @@ import { EmptyState } from '../../components/EmptyState';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Layout } from '../../components/Layout';
 import { CheckSquare, ChevronDown } from 'lucide-react';
+import type { Task } from '../../types';
 
 type PriorityFilter = 'ALL' | 'CRITICAL' | 'WARNING' | 'NORMAL';
+
+const MOCK_TASKS: Task[] = [
+  {
+    id: '1', title: 'Irrigation Check', fieldId: '1', fieldName: 'Field A1',
+    priority: 'CRITICAL', status: 'PENDING', dueDate: new Date(Date.now() + 86400000).toISOString(), createdAt: new Date().toISOString(),
+  },
+  {
+    id: '2', title: 'Pesticide Application', fieldId: '2', fieldName: 'Field B3',
+    priority: 'WARNING', status: 'IN_PROGRESS', dueDate: new Date(Date.now() + 172800000).toISOString(), createdAt: new Date().toISOString(),
+  },
+  {
+    id: '3', title: 'Soil Testing', fieldId: '3', fieldName: 'Field C2',
+    priority: 'NORMAL', status: 'PENDING', dueDate: new Date(Date.now() + 259200000).toISOString(), createdAt: new Date().toISOString(),
+  },
+  {
+    id: '4', title: 'Equipment Inspection', fieldId: '4', fieldName: 'Field D1',
+    priority: 'CRITICAL', status: 'PENDING', dueDate: new Date(Date.now() + 43200000).toISOString(), createdAt: new Date().toISOString(),
+  },
+  {
+    id: '5', title: 'Weekly Field Review', fieldId: '1', fieldName: 'Field A1',
+    priority: 'WARNING', status: 'COMPLETED', dueDate: new Date(Date.now() - 86400000).toISOString(), createdAt: new Date().toISOString(),
+  },
+  {
+    id: '6', title: 'Drainage Maintenance', fieldId: '2', fieldName: 'Field B3',
+    priority: 'NORMAL', status: 'IN_PROGRESS', dueDate: new Date(Date.now() + 345600000).toISOString(), createdAt: new Date().toISOString(),
+  },
+];
 
 const taskStatusBadge: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-800 border border-amber-200',
@@ -31,13 +59,16 @@ const priorityFilters: { label: string; value: PriorityFilter }[] = [
 
 export const TasksPage: React.FC = () => {
   const { user } = useAuth();
-  const { data: tasks, isLoading, error, refetch } = useGetTasksQuery(undefined);
+  const { data: apiTasks, isLoading, error, refetch } = useGetTasksQuery(undefined);
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
   const [filter, setFilter] = useState<PriorityFilter>('ALL');
+  const [useMockData, setUseMockData] = useState(false);
 
+  const tasks = useMockData ? MOCK_TASKS : apiTasks;
   const isSupervisorOrAdmin = user?.role === 'SUPERVISOR' || user?.role === 'ADMIN';
 
   const handleStatusUpdate = async (id: string, status: string) => {
+    if (useMockData) return;
     try {
       await updateTaskStatus({ id, status }).unwrap();
       refetch();
@@ -48,13 +79,19 @@ export const TasksPage: React.FC = () => {
     filter === 'ALL' ? true : (t.priority?.toUpperCase() === filter)
   );
 
-  if (isLoading) return <Layout><LoadingSpinner fullPage /></Layout>;
+  if (isLoading && !useMockData) return <Layout><LoadingSpinner fullPage /></Layout>;
 
-  if (error) {
+  if (error && !useMockData) {
     return (
       <Layout>
-        <div className="p-2">
+        <div className="space-y-4 p-2">
           <ErrorMessage message="Failed to load tasks" onRetry={() => window.location.reload()} />
+          <button
+            onClick={() => setUseMockData(true)}
+            className="text-sm text-forest-600 hover:text-forest-700 font-medium underline underline-offset-2"
+          >
+            Use mock data for demo →
+          </button>
         </div>
       </Layout>
     );
@@ -66,7 +103,16 @@ export const TasksPage: React.FC = () => {
         {/* Header + filter tabs */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="page-header">Tasks</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setUseMockData(v => !v)}
+              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${useMockData
+                  ? 'bg-forest-50 border-forest-200 text-forest-700'
+                  : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200'
+                }`}
+            >
+              {useMockData ? '✓ Mock Data' : 'Use Mock Data'}
+            </button>
             {priorityFilters.map(({ label, value }) => (
               <button
                 key={value}
@@ -107,7 +153,7 @@ export const TasksPage: React.FC = () => {
                     <th className="table-header">Priority</th>
                     <th className="table-header">Status</th>
                     <th className="table-header">Due Date</th>
-                    {isSupervisorOrAdmin && <th className="table-header">Action</th>}
+                    {isSupervisorOrAdmin && !useMockData && <th className="table-header">Action</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -131,11 +177,11 @@ export const TasksPage: React.FC = () => {
                         <td className="table-cell text-gray-500">
                           {task.dueDate
                             ? new Date(task.dueDate).toLocaleDateString('en-US', {
-                              month: 'short', day: 'numeric', year: 'numeric'
+                              month: 'short', day: 'numeric', year: 'numeric',
                             })
                             : '—'}
                         </td>
-                        {isSupervisorOrAdmin && (
+                        {isSupervisorOrAdmin && !useMockData && (
                           <td className="table-cell">
                             <div className="relative inline-block">
                               <select
