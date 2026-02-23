@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useGetFieldsQuery } from '../../services/api';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorMessage } from '../../components/ErrorMessage';
@@ -7,16 +7,6 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { Layout } from '../../components/Layout';
 import { Link } from 'react-router-dom';
 import { MapPin, Layers, ArrowRight } from 'lucide-react';
-import type { Field } from '../../types';
-
-const MOCK_FIELDS: Field[] = [
-  { id: '1', name: 'Field A1', cropType: 'Sugarcane', status: 'NORMAL', area: 120, location: 'North Block' },
-  { id: '2', name: 'Field B3', cropType: 'Sugarcane', status: 'WARNING', area: 95, location: 'East Block' },
-  { id: '3', name: 'Field C2', cropType: 'Sugarcane', status: 'CRITICAL', area: 80, location: 'South Block' },
-  { id: '4', name: 'Field D1', cropType: 'Sugarcane', status: 'NORMAL', area: 140, location: 'West Block' },
-  { id: '5', name: 'Field E4', cropType: 'Sugarcane', status: 'WARNING', area: 110, location: 'Central Block' },
-  { id: '6', name: 'Field F2', cropType: 'Sugarcane', status: 'NORMAL', area: 130, location: 'North Block' },
-];
 
 const statusBorderColor: Record<string, string> = {
   NORMAL: 'border-t-emerald-500',
@@ -32,24 +22,15 @@ const statusBg: Record<string, string> = {
 
 export const FieldsPage: React.FC = () => {
   const { data: apiFields, isLoading, error } = useGetFieldsQuery();
-  const [useMockData, setUseMockData] = useState(false);
 
-  const fields = useMockData ? MOCK_FIELDS : apiFields;
+  const fields = apiFields;
 
-  if (isLoading && !useMockData) return <Layout><LoadingSpinner fullPage /></Layout>;
+  if (isLoading) return <Layout><LoadingSpinner fullPage /></Layout>;
 
-  if (error && !useMockData) {
+  if (error) {
     return (
       <Layout>
-        <div className="space-y-4 p-2">
-          <ErrorMessage message="Failed to load fields" onRetry={() => window.location.reload()} />
-          <button
-            onClick={() => setUseMockData(true)}
-            className="text-sm text-forest-600 hover:text-forest-700 font-medium underline underline-offset-2"
-          >
-            Use mock data for demo →
-          </button>
-        </div>
+        <ErrorMessage message="Failed to load fields" onRetry={() => window.location.reload()} />
       </Layout>
     );
   }
@@ -76,16 +57,6 @@ export const FieldsPage: React.FC = () => {
             <p className="text-sm text-gray-500 mt-0.5">{fields.length} fields monitored</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Mock toggle */}
-            <button
-              onClick={() => setUseMockData(v => !v)}
-              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${useMockData
-                  ? 'bg-forest-50 border-forest-200 text-forest-700'
-                  : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200'
-                }`}
-            >
-              {useMockData ? '✓ Mock Data' : 'Use Mock Data'}
-            </button>
             {/* Summary pills */}
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">

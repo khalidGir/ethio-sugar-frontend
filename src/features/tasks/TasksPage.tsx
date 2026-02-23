@@ -1,46 +1,18 @@
 import React, { useState } from 'react';
-import { useGetTasksQuery, useUpdateTaskStatusMutation } from '../../services/api';
+import { useGetTasksQuery, useUpdateTaskStatusMutation, useGetMyTasksQuery, useGetFieldsQuery, useCreateTaskMutation, useGetUsersQuery } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { EmptyState } from '../../components/EmptyState';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Layout } from '../../components/Layout';
-import { CheckSquare, ChevronDown } from 'lucide-react';
+import { CheckSquare, ChevronDown, Plus, X } from 'lucide-react';
 import type { Task } from '../../types';
 
 type PriorityFilter = 'ALL' | 'CRITICAL' | 'WARNING' | 'NORMAL';
 
-const MOCK_TASKS: Task[] = [
-  {
-    id: '1', title: 'Irrigation Check', fieldId: '1', fieldName: 'Field A1',
-    priority: 'CRITICAL', status: 'PENDING', dueDate: new Date(Date.now() + 86400000).toISOString(), createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2', title: 'Pesticide Application', fieldId: '2', fieldName: 'Field B3',
-    priority: 'WARNING', status: 'IN_PROGRESS', dueDate: new Date(Date.now() + 172800000).toISOString(), createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3', title: 'Soil Testing', fieldId: '3', fieldName: 'Field C2',
-    priority: 'NORMAL', status: 'PENDING', dueDate: new Date(Date.now() + 259200000).toISOString(), createdAt: new Date().toISOString(),
-  },
-  {
-    id: '4', title: 'Equipment Inspection', fieldId: '4', fieldName: 'Field D1',
-    priority: 'CRITICAL', status: 'PENDING', dueDate: new Date(Date.now() + 43200000).toISOString(), createdAt: new Date().toISOString(),
-  },
-  {
-    id: '5', title: 'Weekly Field Review', fieldId: '1', fieldName: 'Field A1',
-    priority: 'WARNING', status: 'COMPLETED', dueDate: new Date(Date.now() - 86400000).toISOString(), createdAt: new Date().toISOString(),
-  },
-  {
-    id: '6', title: 'Drainage Maintenance', fieldId: '2', fieldName: 'Field B3',
-    priority: 'NORMAL', status: 'IN_PROGRESS', dueDate: new Date(Date.now() + 345600000).toISOString(), createdAt: new Date().toISOString(),
-  },
-];
-
 const taskStatusBadge: Record<string, string> = {
-  PENDING: 'bg-amber-100 text-amber-800 border border-amber-200',
-  IN_PROGRESS: 'bg-blue-100 text-blue-800 border border-blue-200',
+  OPEN: 'bg-amber-100 text-amber-800 border border-amber-200',
   COMPLETED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
 };
 
@@ -59,40 +31,63 @@ const priorityFilters: { label: string; value: PriorityFilter }[] = [
 
 export const TasksPage: React.FC = () => {
   const { user } = useAuth();
-  const { data: apiTasks, isLoading, error, refetch } = useGetTasksQuery(undefined);
+  const { data: allTasks, isLoading, error, refetch } = useGetTasksQuery(undefined);
+  const { data: myTasks } = useGetMyTasksQuery(undefined);
+  const { data: fields } = useGetFieldsQuery();
+  const { data: users } = useGetUsersQuery(undefined);
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
+  const [createTask] = useCreateTaskMutation();
   const [filter, setFilter] = useState<PriorityFilter>('ALL');
-  const [useMockData, setUseMockData] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: '',
+    description: '',
+    fieldId: '',
+    assignedToId: '',
+    priority: 'NORMAL' as 'NORMAL' | 'WARNING' | 'CRITICAL',
+  });
 
-  const tasks = useMockData ? MOCK_TASKS : apiTasks;
+  const tasks = user?.role === 'WORKER' ? myTasks : allTasks;
   const isSupervisorOrAdmin = user?.role === 'SUPERVISOR' || user?.role === 'ADMIN';
+  const workers = users?.filter(u => u.role === 'WORKER');
 
   const handleStatusUpdate = async (id: string, status: string) => {
-    if (useMockData) return;
     try {
       await updateTaskStatus({ id, status }).unwrap();
       refetch();
-    } catch { }
+    } catch (err) {
+      console.error('Failed to update task:', err);
+    }
+  };
+
+  const handleCreateTask = async () => {
+    if (!newTask.title || !newTask.description || !newTask.fieldId) return;
+    try {
+      await createTask({
+        title: newTask.title,
+        description: newTask.description,
+        fieldId: newTask.fieldId,
+        assignedToId: newTask.assignedToId || undefined,
+        priority: newTask.priority,
+      }).unwrap();
+      setShowCreateModal(false);
+      setNewTask({ title: '', description: '', fieldId: '', assignedToId: '', priority: 'NORMAL' });
+      refetch();
+    } catch (err) {
+      console.error('Failed to create task:', err);
+    }
   };
 
   const filteredTasks = tasks?.filter((t) =>
     filter === 'ALL' ? true : (t.priority?.toUpperCase() === filter)
   );
 
-  if (isLoading && !useMockData) return <Layout><LoadingSpinner fullPage /></Layout>;
+  if (isLoading) return <Layout><LoadingSpinner fullPage /></Layout>;
 
-  if (error && !useMockData) {
+  if (error) {
     return (
       <Layout>
-        <div className="space-y-4 p-2">
-          <ErrorMessage message="Failed to load tasks" onRetry={() => window.location.reload()} />
-          <button
-            onClick={() => setUseMockData(true)}
-            className="text-sm text-forest-600 hover:text-forest-700 font-medium underline underline-offset-2"
-          >
-            Use mock data for demo →
-          </button>
-        </div>
+        <ErrorMessage message="Failed to load tasks" onRetry={() => window.location.reload()} />
       </Layout>
     );
   }
@@ -100,19 +95,18 @@ export const TasksPage: React.FC = () => {
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
-        {/* Header + filter tabs */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="page-header">Tasks</h1>
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => setUseMockData(v => !v)}
-              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${useMockData
-                  ? 'bg-forest-50 border-forest-200 text-forest-700'
-                  : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200'
-                }`}
-            >
-              {useMockData ? '✓ Mock Data' : 'Use Mock Data'}
-            </button>
+            {isSupervisorOrAdmin && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-forest-500 text-white shadow-glow-green hover:bg-forest-600"
+              >
+                <Plus className="w-4 h-4" />
+                Create Task
+              </button>
+            )}
             {priorityFilters.map(({ label, value }) => (
               <button
                 key={value}
@@ -153,7 +147,7 @@ export const TasksPage: React.FC = () => {
                     <th className="table-header">Priority</th>
                     <th className="table-header">Status</th>
                     <th className="table-header">Due Date</th>
-                    {isSupervisorOrAdmin && !useMockData && <th className="table-header">Action</th>}
+                    {isSupervisorOrAdmin && <th className="table-header">Action</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -169,9 +163,8 @@ export const TasksPage: React.FC = () => {
                           <StatusBadge status={task.priority} size="sm" />
                         </td>
                         <td className="table-cell">
-                          <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${taskStatusBadge[task.status] ?? 'bg-gray-100 text-gray-600'
-                            }`}>
-                            {task.status.replace('_', ' ')}
+                          <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${taskStatusBadge[task.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                            {task.status}
                           </span>
                         </td>
                         <td className="table-cell text-gray-500">
@@ -181,7 +174,7 @@ export const TasksPage: React.FC = () => {
                             })
                             : '—'}
                         </td>
-                        {isSupervisorOrAdmin && !useMockData && (
+                        {isSupervisorOrAdmin && (
                           <td className="table-cell">
                             <div className="relative inline-block">
                               <select
@@ -189,8 +182,7 @@ export const TasksPage: React.FC = () => {
                                 onChange={(e) => handleStatusUpdate(task.id, e.target.value)}
                                 className="text-xs border border-gray-200 rounded-lg pl-2 pr-7 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-forest-400 cursor-pointer appearance-none"
                               >
-                                <option value="PENDING">Pending</option>
-                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="OPEN">Open</option>
                                 <option value="COMPLETED">Completed</option>
                               </select>
                               <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
@@ -206,6 +198,85 @@ export const TasksPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Create New Task</h2>
+              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={newTask.title}
+                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400"
+                  placeholder="Task title"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400"
+                  placeholder="Task description"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Field</label>
+                <select
+                  value={newTask.fieldId}
+                  onChange={(e) => setNewTask({ ...newTask, fieldId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400"
+                >
+                  <option value="">Select field</option>
+                  {fields?.map((field) => (
+                    <option key={field.id} value={field.id}>{field.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Worker (optional)</label>
+                <select
+                  value={newTask.assignedToId}
+                  onChange={(e) => setNewTask({ ...newTask, assignedToId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400"
+                >
+                  <option value="">Unassigned</option>
+                  {workers?.map((worker) => (
+                    <option key={worker.id} value={worker.id}>{worker.fullName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                <select
+                  value={newTask.priority}
+                  onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as any })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400"
+                >
+                  <option value="NORMAL">Normal</option>
+                  <option value="WARNING">Warning</option>
+                  <option value="CRITICAL">Critical</option>
+                </select>
+              </div>
+              <button
+                onClick={handleCreateTask}
+                className="w-full py-2 bg-forest-500 text-white rounded-lg font-semibold hover:bg-forest-600"
+              >
+                Create Task
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

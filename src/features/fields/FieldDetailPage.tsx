@@ -76,12 +76,12 @@ export const FieldDetailPage: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Thresholds</h2>
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-sm font-medium text-gray-600">Moisture Min</dt>
-                  <dd className="text-gray-800">{field.thresholds.moistureMin}%</dd>
+                  <dt className="text-sm font-medium text-gray-600">Warning Threshold</dt>
+                  <dd className="text-gray-800">{field.warningThreshold}%</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-600">Moisture Max</dt>
-                  <dd className="text-gray-800">{field.thresholds.moistureMax}%</dd>
+                  <dt className="text-sm font-medium text-gray-600">Critical Threshold</dt>
+                  <dd className="text-gray-800">{field.criticalThreshold}%</dd>
                 </div>
               </dl>
             </div>

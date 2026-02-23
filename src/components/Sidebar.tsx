@@ -120,12 +120,12 @@ export const Sidebar: React.FC = () => {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
               <span className="text-white/80 text-xs font-bold">
-                {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+                {(user.fullName || user.email || 'U').charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-white/70 text-xs truncate font-medium">
-                {user.name || user.email}
+                {user.fullName || user.email}
               </p>
               <span
                 className={`mt-0.5 inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${roleBadgeColor[user.role] ?? 'bg-white/10 text-white/50'

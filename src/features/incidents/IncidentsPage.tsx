@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   useGetIncidentsQuery, useCreateIncidentMutation, useUpdateIncidentStatusMutation,
+  useGetFieldsQuery,
 } from '../../services/api';
-import { useGetFieldsQuery } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorMessage } from '../../components/ErrorMessage';
@@ -13,7 +13,6 @@ import { EmptyState } from '../../components/EmptyState';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Layout } from '../../components/Layout';
 import { AlertTriangle, Plus, ChevronDown } from 'lucide-react';
-import type { Incident, Field } from '../../types';
 
 const incidentSchema = z.object({
   fieldId: z.string().min(1, 'Field is required'),
@@ -23,41 +22,6 @@ const incidentSchema = z.object({
 });
 
 type IncidentFormData = z.infer<typeof incidentSchema>;
-
-const MOCK_FIELDS: Field[] = [
-  { id: '1', name: 'Field A1', cropType: 'Sugarcane', status: 'NORMAL' },
-  { id: '2', name: 'Field B3', cropType: 'Sugarcane', status: 'WARNING' },
-  { id: '3', name: 'Field C2', cropType: 'Sugarcane', status: 'CRITICAL' },
-  { id: '4', name: 'Field D1', cropType: 'Sugarcane', status: 'NORMAL' },
-];
-
-const MOCK_INCIDENTS: Incident[] = [
-  {
-    id: '1', fieldId: '1', fieldName: 'Field A1',
-    type: 'Pest Detected', severity: 'CRITICAL', description: 'Large pest colony found in sector 3.',
-    status: 'OPEN', createdBy: 'worker1', createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: '2', fieldId: '2', fieldName: 'Field B3',
-    type: 'Low Moisture', severity: 'WARNING', description: 'Moisture levels below threshold.',
-    status: 'IN_PROGRESS', createdBy: 'worker2', createdAt: new Date(Date.now() - 7200000).toISOString(),
-  },
-  {
-    id: '3', fieldId: '3', fieldName: 'Field C2',
-    type: 'Equipment Malfunction', severity: 'CRITICAL', description: 'Irrigation pump failed to start.',
-    status: 'OPEN', createdBy: 'worker1', createdAt: new Date(Date.now() - 10800000).toISOString(),
-  },
-  {
-    id: '4', fieldId: '4', fieldName: 'Field D1',
-    type: 'Disease Outbreak', severity: 'WARNING', description: 'Fungal growth detected on stalks.',
-    status: 'IN_PROGRESS', createdBy: 'worker3', createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: '5', fieldId: '1', fieldName: 'Field A1',
-    type: 'Irrigation Issue', severity: 'NORMAL', description: 'Minor clog in irrigation line, cleared.',
-    status: 'RESOLVED', createdBy: 'worker2', createdAt: new Date(Date.now() - 172800000).toISOString(),
-  },
-];
 
 const incidentStatusStyle: Record<string, string> = {
   OPEN: 'bg-red-100 text-red-800 border border-red-200',
@@ -84,16 +48,14 @@ export const IncidentsPage: React.FC = () => {
   const { data: apiIncidents, isLoading, error, refetch } = useGetIncidentsQuery(undefined);
   const [createIncident] = useCreateIncidentMutation();
   const [updateIncidentStatus] = useUpdateIncidentStatusMutation();
-  const [useMockData, setUseMockData] = useState(false);
 
-  const fields = useMockData ? MOCK_FIELDS : apiFields;
-  const incidents = useMockData ? MOCK_INCIDENTS : apiIncidents;
+  const fields = apiFields;
+  const incidents = apiIncidents;
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } =
     useForm<IncidentFormData>({ resolver: zodResolver(incidentSchema) });
 
   const onSubmit = async (data: IncidentFormData) => {
-    if (useMockData) { reset(); return; }
     try {
       await createIncident(data).unwrap();
       reset();
@@ -102,7 +64,6 @@ export const IncidentsPage: React.FC = () => {
   };
 
   const handleStatusUpdate = async (id: string, status: string) => {
-    if (useMockData) return;
     try {
       await updateIncidentStatus({ id, status }).unwrap();
       refetch();
@@ -112,20 +73,12 @@ export const IncidentsPage: React.FC = () => {
   const isSupervisorOrAdmin = user?.role === 'SUPERVISOR' || user?.role === 'ADMIN';
   const isWorker = user?.role === 'WORKER';
 
-  if (isLoading && !useMockData) return <Layout><LoadingSpinner fullPage /></Layout>;
+  if (isLoading) return <Layout><LoadingSpinner fullPage /></Layout>;
 
-  if (error && !useMockData) {
+  if (error) {
     return (
       <Layout>
-        <div className="space-y-4 p-2">
-          <ErrorMessage message="Failed to load incidents" onRetry={() => window.location.reload()} />
-          <button
-            onClick={() => setUseMockData(true)}
-            className="text-sm text-forest-600 hover:text-forest-700 font-medium underline underline-offset-2"
-          >
-            Use mock data for demo →
-          </button>
-        </div>
+        <ErrorMessage message="Failed to load incidents" onRetry={() => window.location.reload()} />
       </Layout>
     );
   }
@@ -135,15 +88,6 @@ export const IncidentsPage: React.FC = () => {
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between">
           <h1 className="page-header">Incidents</h1>
-          <button
-            onClick={() => setUseMockData(v => !v)}
-            className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${useMockData
-                ? 'bg-forest-50 border-forest-200 text-forest-700'
-                : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200'
-              }`}
-          >
-            {useMockData ? '✓ Mock Data' : 'Use Mock Data'}
-          </button>
         </div>
 
         {/* Report Form */}

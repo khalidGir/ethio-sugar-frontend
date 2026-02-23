@@ -26,7 +26,7 @@ export const Topbar: React.FC = () => {
   };
 
   const pageLabel = routeLabels[location.pathname] ?? 'EthioSugar';
-  const initials = (user?.name || user?.email || 'U')
+  const initials = (user?.fullName || user?.email || 'U')
     .split(' ')
     .map((p: string) => p[0])
     .slice(0, 2)
@@ -70,7 +70,7 @@ export const Topbar: React.FC = () => {
           </div>
           <div className="hidden sm:block">
             <p className="text-sm font-semibold text-gray-800 leading-tight">
-              {user?.name || user?.email}
+              {user?.fullName || user?.email}
             </p>
             <p className="text-xs text-gray-400 leading-tight capitalize">
               {user?.role?.toLowerCase()}

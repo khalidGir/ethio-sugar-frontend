@@ -9,6 +9,7 @@ import type {
   IrrigationLog,
   CreateIrrigationLogDto,
   Task,
+  CreateTaskDto,
   DashboardSummary,
 } from '../types';
 
@@ -23,9 +24,17 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+const baseQueryWithUnwrap = async (args: any, api: any, extraOptions: any) => {
+  const result = await baseQuery(args, api, extraOptions);
+  if (result.data && (result.data as any).success) {
+    return { ...result, data: (result.data as any).data };
+  }
+  return result;
+};
+
 export const api = createApi({
   reducerPath: 'api',
-  baseQuery,
+  baseQuery: baseQueryWithUnwrap,
   tagTypes: ['Fields', 'Incidents', 'Irrigation', 'Tasks', 'Dashboard'],
   endpoints: (build) => ({
     login: build.mutation<AuthResponse, LoginCredentials>({
@@ -37,7 +46,7 @@ export const api = createApi({
     }),
 
     getDashboardSummary: build.query<DashboardSummary, void>({
-      query: () => '/internal/daily-summary',
+      query: () => '/users/summary',
       providesTags: ['Dashboard'],
     }),
 
@@ -110,6 +119,25 @@ export const api = createApi({
       }),
       invalidatesTags: ['Tasks', 'Dashboard'],
     }),
+
+    createTask: build.mutation<Task, CreateTaskDto>({
+      query: (body) => ({
+        url: '/tasks',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Tasks', 'Dashboard'],
+    }),
+
+    getMyTasks: build.query<Task[], void>({
+      query: () => '/tasks/my',
+      providesTags: ['Tasks'],
+    }),
+
+    getUsers: build.query<any[], void>({
+      query: () => '/users',
+      providesTags: ['Users'],
+    }),
   }),
 });
 
@@ -125,4 +153,7 @@ export const {
   useGetIrrigationLogsQuery,
   useGetTasksQuery,
   useUpdateTaskStatusMutation,
+  useCreateTaskMutation,
+  useGetMyTasksQuery,
+  useGetUsersQuery,
 } = api;

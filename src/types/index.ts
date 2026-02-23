@@ -4,7 +4,8 @@ export interface User {
   id: string;
   email: string;
   role: UserRole;
-  name: string;
+  fullName: string;
+  name?: string;
 }
 
 export interface LoginCredentials {
@@ -75,17 +76,28 @@ export interface CreateIrrigationLogDto {
 export interface Task {
   id: string;
   title: string;
+  description?: string;
   fieldId: string;
   fieldName?: string;
   priority: Status;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  status: 'OPEN' | 'COMPLETED';
   dueDate?: string;
   assignedTo?: string;
+  assignedToId?: string;
   createdAt: string;
 }
 
+export interface CreateTaskDto {
+  fieldId: string;
+  assignedToId?: string;
+  title: string;
+  description: string;
+  priority?: 'NORMAL' | 'WARNING' | 'CRITICAL';
+  dueDate?: string;
+}
+
 export interface UpdateTaskStatusDto {
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  status: 'COMPLETED';
 }
 
 export interface DashboardSummary {

@@ -15,9 +15,6 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-const MOCK_USER = { id: '1', email: 'admin@ethiosugar.com', name: 'Admin User', role: 'ADMIN' as const };
-const MOCK_TOKEN = 'mock-jwt-token-for-development';
-
 const stats = [
   { icon: MapPin, label: 'Active Fields', value: '24' },
   { icon: Gauge, label: 'Ha Monitored', value: '1,200' },
@@ -28,7 +25,6 @@ export const LoginPage: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [login, { isLoading, error }] = useLoginMutation();
-  const [useMock, setUseMock] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
@@ -36,16 +32,11 @@ export const LoginPage: React.FC = () => {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    try {
-      if (useMock) {
-        dispatch(loginSuccess({ user: MOCK_USER, token: MOCK_TOKEN }));
-        navigate('/dashboard');
-      } else {
-        const result = await login(data).unwrap();
-        dispatch(loginSuccess(result));
-        navigate('/dashboard');
-      }
-    } catch { }
+    const result = await login(data);
+    if ('data' in result && result.data?.token) {
+      dispatch(loginSuccess(result.data));
+      navigate('/dashboard');
+    }
   };
 
   return (
@@ -132,32 +123,6 @@ export const LoginPage: React.FC = () => {
 
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
           <p className="text-gray-500 text-sm mb-8">Sign in to your operations portal</p>
-
-          {/* Mock Mode Banner */}
-          <div className="mb-6 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-amber-400" />
-              <span className="text-amber-800 text-xs font-medium">Dev Mode</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setUseMock(v => !v)}
-              className={`relative w-10 h-5.5 rounded-full transition-colors duration-200 ${useMock ? 'bg-forest-500' : 'bg-gray-300'
-                }`}
-              style={{ height: '22px' }}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${useMock ? 'translate-x-4.5' : 'translate-x-0'
-                  }`}
-                style={{ transform: useMock ? 'translateX(18px)' : 'translateX(0)' }}
-              />
-            </button>
-          </div>
-          {useMock && (
-            <p className="text-xs text-amber-600 -mt-4 mb-5 px-1">
-              Mock login active — any credentials work.
-            </p>
-          )}
 
           {/* Error */}
           {error && (
