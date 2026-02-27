@@ -392,7 +392,7 @@ export const api = createApi({
     }),
 
     // ==================== APPROVALS ====================
-    getPendingApprovals: build.query<Approval[], { type?: string } | undefined>({
+    getPendingApprovals: build.query<{ approvals: Approval[]; count: number }, { type?: string } | undefined>({
       query: (params) => ({
         url: '/approvals/pending',
         params: params || {},

@@ -92,12 +92,12 @@ export interface WeatherHistory {
 
 export interface CurrentWeather {
   temperature: number;
-  feelsLike: number;
   humidity: number;
-  windSpeed: number;
-  description: string;
-  icon: string;
-  updatedAt: string;
+  condition?: string;
+  updatedAt?: string;
+  uvIndex?: number;
+  windSpeed?: number;
+  feelsLike?: number;
 }
 
 // Worker Daily Log Types

@@ -78,7 +78,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, error, onRe
           <h3 className="font-semibold text-red-900">{title}</h3>
           <p className="text-sm text-red-700 mt-1">{description}</p>
 
-          {error?.message && process.env.NODE_ENV === 'development' && (
+          {error?.message && import.meta.env.DEV && (
             <details className="mt-2">
               <summary className="text-xs text-red-600 cursor-pointer hover:text-red-700">
                 Technical details
