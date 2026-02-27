@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useGetFieldDetailQuery } from '../../services/api';
+import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -37,6 +38,9 @@ export const FieldDetailPage: React.FC = () => {
   return (
     <Layout>
       <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={[{ label: 'Fields', href: '/fields' }, { label: field.name }]} />
+
         <div className="flex items-center gap-4">
           <Link to="/fields" className="text-blue-600 hover:underline">
             ← Back to Fields

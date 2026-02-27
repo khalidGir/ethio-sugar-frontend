@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,13 +6,14 @@ import {
   useGetIncidentsQuery, useCreateIncidentMutation, useUpdateIncidentStatusMutation,
   useGetFieldsQuery,
 } from '../../services/api';
+import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { useAuth } from '../../hooks/useAuth';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { EmptyState } from '../../components/EmptyState';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Layout } from '../../components/Layout';
-import { AlertTriangle, Plus, ChevronDown } from 'lucide-react';
+import { AlertTriangle, Plus, ChevronDown, Search, X } from 'lucide-react';
 
 const incidentSchema = z.object({
   fieldId: z.string().min(1, 'Field is required'),
@@ -48,9 +49,21 @@ export const IncidentsPage: React.FC = () => {
   const { data: apiIncidents, isLoading, error, refetch } = useGetIncidentsQuery(undefined);
   const [createIncident] = useCreateIncidentMutation();
   const [updateIncidentStatus] = useUpdateIncidentStatusMutation();
+  const [search, setSearch] = useState('');
 
   const fields = apiFields;
   const incidents = apiIncidents;
+
+  // Filter incidents by search
+  const filteredIncidents = incidents?.filter((incident) => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return (
+      incident.type.toLowerCase().includes(searchLower) ||
+      incident.fieldName?.toLowerCase().includes(searchLower) ||
+      incident.description?.toLowerCase().includes(searchLower)
+    );
+  });
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } =
     useForm<IncidentFormData>({ resolver: zodResolver(incidentSchema) });
@@ -70,7 +83,7 @@ export const IncidentsPage: React.FC = () => {
     } catch { }
   };
 
-  const isSupervisorOrAdmin = user?.role === 'SUPERVISOR' || user?.role === 'ADMIN';
+  const isSupervisorOrAdmin = user?.role === 'MANAGER' || user?.role === 'ADMIN';
   const isWorker = user?.role === 'WORKER';
 
   if (isLoading) return <Layout><LoadingSpinner fullPage /></Layout>;
@@ -86,8 +99,31 @@ export const IncidentsPage: React.FC = () => {
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={[{ label: 'Incidents' }]} />
+
         <div className="flex items-center justify-between">
           <h1 className="page-header">Incidents</h1>
+          {/* Search input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search incidents..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-9 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-400 min-h-[44px] w-48 lg:w-64"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Report Form */}
@@ -175,7 +211,7 @@ export const IncidentsPage: React.FC = () => {
             )}
           </h2>
 
-          {!incidents || incidents.length === 0 ? (
+          {!filteredIncidents || filteredIncidents.length === 0 ? (
             <EmptyState message="No incidents reported" description="Reports you file will appear here" />
           ) : (
             <div className="overflow-x-auto rounded-xl border border-gray-100">
@@ -187,11 +223,11 @@ export const IncidentsPage: React.FC = () => {
                     <th className="table-header">Severity</th>
                     <th className="table-header">Status</th>
                     <th className="table-header">Date</th>
-                    {isSupervisorOrAdmin && !useMockData && <th className="table-header">Action</th>}
+                    {isSupervisorOrAdmin && <th className="table-header">Action</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {incidents.map((incident) => {
+                  {filteredIncidents.map((incident) => {
                     const rowBg = rowBgBySeverity[incident.severity] ?? '';
                     return (
                       <tr key={incident.id} className={`table-row ${rowBg}`}>
@@ -209,7 +245,7 @@ export const IncidentsPage: React.FC = () => {
                             month: 'short', day: 'numeric', year: 'numeric',
                           })}
                         </td>
-                        {isSupervisorOrAdmin && !useMockData && (
+                        {isSupervisorOrAdmin && (
                           <td className="table-cell">
                             <select
                               value={incident.status}

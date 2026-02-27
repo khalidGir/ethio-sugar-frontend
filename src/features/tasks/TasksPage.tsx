@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useGetTasksQuery, useUpdateTaskStatusMutation, useGetMyTasksQuery, useGetFieldsQuery, useCreateTaskMutation, useGetUsersQuery } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { EmptyState } from '../../components/EmptyState';
 import { StatusBadge } from '../../components/StatusBadge';
+import { TaskCard } from '../../components/TaskCard';
 import { Layout } from '../../components/Layout';
-import { CheckSquare, ChevronDown, Plus, X } from 'lucide-react';
-import type { Task } from '../../types';
+import { CheckSquare, ChevronDown, Plus, X, CheckCheck, Search } from 'lucide-react';
 
 type PriorityFilter = 'ALL' | 'CRITICAL' | 'WARNING' | 'NORMAL';
 
@@ -31,6 +33,7 @@ const priorityFilters: { label: string; value: PriorityFilter }[] = [
 
 export const TasksPage: React.FC = () => {
   const { user } = useAuth();
+  const isMobile = useMediaQuery('(max-width: 640px)');
   const { data: allTasks, isLoading, error, refetch } = useGetTasksQuery(undefined);
   const { data: myTasks } = useGetMyTasksQuery(undefined);
   const { data: fields } = useGetFieldsQuery();
@@ -38,7 +41,10 @@ export const TasksPage: React.FC = () => {
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
   const [createTask] = useCreateTaskMutation();
   const [filter, setFilter] = useState<PriorityFilter>('ALL');
+  const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -48,15 +54,36 @@ export const TasksPage: React.FC = () => {
   });
 
   const tasks = user?.role === 'WORKER' ? myTasks : allTasks;
-  const isSupervisorOrAdmin = user?.role === 'SUPERVISOR' || user?.role === 'ADMIN';
+  const isSupervisorOrAdmin = user?.role === 'MANAGER' || user?.role === 'ADMIN';
   const workers = users?.filter(u => u.role === 'WORKER');
 
-  const handleStatusUpdate = async (id: string, status: string) => {
+  const toggleTaskSelection = (id: string) => {
+    const newSelected = new Set(selectedTasks);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedTasks(newSelected);
+  };
+
+  const selectAll = () => {
+    if (selectedTasks.size === filteredTasks?.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(filteredTasks?.map(t => t.id) || []));
+    }
+  };
+
+  const handleBulkComplete = async () => {
     try {
-      await updateTaskStatus({ id, status }).unwrap();
+      await Promise.all(
+        Array.from(selectedTasks).map(id => updateTaskStatus({ id, status: 'COMPLETED' }).unwrap())
+      );
+      setSelectedTasks(new Set());
       refetch();
     } catch (err) {
-      console.error('Failed to update task:', err);
+      console.error('Failed to complete tasks:', err);
     }
   };
 
@@ -78,9 +105,23 @@ export const TasksPage: React.FC = () => {
     }
   };
 
-  const filteredTasks = tasks?.filter((t) =>
-    filter === 'ALL' ? true : (t.priority?.toUpperCase() === filter)
-  );
+  const handleStatusUpdate = async (taskId: string, newStatus: string) => {
+    try {
+      await updateTaskStatus({ id: taskId, status: newStatus }).unwrap();
+      refetch();
+    } catch (err) {
+      console.error('Failed to update task status:', err);
+    }
+  };
+
+  const filteredTasks = tasks?.filter((t) => {
+    const matchesFilter = filter === 'ALL' || t.priority?.toUpperCase() === filter;
+    const matchesSearch = search === '' || 
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
+      t.description?.toLowerCase().includes(search.toLowerCase()) ||
+      t.fieldName?.toLowerCase().includes(search.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   if (isLoading) return <Layout><LoadingSpinner fullPage /></Layout>;
 
@@ -95,25 +136,49 @@ export const TasksPage: React.FC = () => {
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={[{ label: 'Tasks' }]} />
+
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="page-header">Tasks</h1>
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Search input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search tasks..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 pr-9 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-400 min-h-[44px] w-48 lg:w-64"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
             {isSupervisorOrAdmin && (
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-forest-500 text-white shadow-glow-green hover:bg-forest-600"
+                className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold bg-forest-500 text-white shadow-glow-green hover:bg-forest-600 min-h-[44px]"
               >
                 <Plus className="w-4 h-4" />
-                Create Task
+                <span className="hidden sm:inline">Create Task</span>
               </button>
             )}
             {priorityFilters.map(({ label, value }) => (
               <button
                 key={value}
                 onClick={() => setFilter(value)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${filter === value
+                className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all min-h-[44px] ${filter === value
                     ? 'bg-forest-500 text-white shadow-glow-green'
-                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
                   }`}
               >
                 {label}
@@ -126,9 +191,62 @@ export const TasksPage: React.FC = () => {
           <div className="card">
             <EmptyState message="No tasks found" description="Try a different filter or check back later." />
           </div>
+        ) : isMobile ? (
+          // Mobile card view
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <CheckSquare className="w-4 h-4 text-gray-400" />
+              <span className="text-sm font-semibold text-gray-700">
+                {filter === 'ALL' ? 'All Tasks' : `${filter.charAt(0) + filter.slice(1).toLowerCase()} Tasks`}
+              </span>
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold">
+                {filteredTasks.length}
+              </span>
+            </div>
+            {filteredTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onStatusChange={isSupervisorOrAdmin ? handleStatusUpdate : undefined}
+              />
+            ))}
+          </div>
         ) : (
+          // Desktop table view
           <div className="card p-0 overflow-hidden">
+            {/* Bulk actions bar */}
+            {selectedTasks.size > 0 && (
+              <div className="px-6 py-3 bg-forest-50 border-b border-forest-100 flex items-center justify-between">
+                <span className="text-sm font-semibold text-forest-800">
+                  {selectedTasks.size} task{selectedTasks.size > 1 ? 's' : ''} selected
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleBulkComplete}
+                    className="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-semibold hover:bg-emerald-600 flex items-center gap-1.5"
+                  >
+                    <CheckCheck className="w-4 h-4" />
+                    Mark Complete
+                  </button>
+                  <button
+                    onClick={() => setSelectedTasks(new Set())}
+                    className="px-3 py-1.5 text-forest-700 hover:bg-forest-100 rounded-lg text-sm font-semibold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+              {isSupervisorOrAdmin && (
+                <input
+                  type="checkbox"
+                  checked={selectedTasks.size === filteredTasks?.length && filteredTasks?.length! > 0}
+                  onChange={selectAll}
+                  className="w-4 h-4 rounded border-gray-300 text-forest-500 focus:ring-forest-400"
+                />
+              )}
               <CheckSquare className="w-4 h-4 text-gray-400" />
               <span className="section-title">
                 {filter === 'ALL' ? 'All Tasks' : `${filter.charAt(0) + filter.slice(1).toLowerCase()} Tasks`}
@@ -142,6 +260,7 @@ export const TasksPage: React.FC = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
+                    {isSupervisorOrAdmin && <th className="table-header w-10"></th>}
                     <th className="table-header">Task</th>
                     <th className="table-header">Field</th>
                     <th className="table-header">Priority</th>
@@ -154,9 +273,20 @@ export const TasksPage: React.FC = () => {
                   {filteredTasks.map((task) => {
                     const priorityKey = task.priority?.toUpperCase() ?? 'NORMAL';
                     const rowClass = rowBorderByPriority[priorityKey] ?? rowBorderByPriority.NORMAL;
+                    const isSelected = selectedTasks.has(task.id);
 
                     return (
-                      <tr key={task.id} className={`table-row hover:bg-gray-50 ${rowClass}`}>
+                      <tr key={task.id} className={`table-row hover:bg-gray-50 ${rowClass} ${isSelected ? 'bg-forest-50' : ''}`}>
+                        {isSupervisorOrAdmin && (
+                          <td className="table-cell">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleTaskSelection(task.id)}
+                              className="w-4 h-4 rounded border-gray-300 text-forest-500 focus:ring-forest-400"
+                            />
+                          </td>
+                        )}
                         <td className="table-cell font-semibold text-gray-900">{task.title}</td>
                         <td className="table-cell text-gray-600">{task.fieldName || task.fieldId}</td>
                         <td className="table-cell">
@@ -208,33 +338,50 @@ export const TasksPage: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Quick priority selector */}
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Priority</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 'NORMAL', label: 'Normal', color: 'bg-emerald-50 border-emerald-300 text-emerald-700' },
+                  { value: 'WARNING', label: 'Warning', color: 'bg-amber-50 border-amber-300 text-amber-700' },
+                  { value: 'CRITICAL', label: 'Critical', color: 'bg-red-50 border-red-300 text-red-700' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setNewTask({ ...newTask, priority: opt.value as any })}
+                    className={`py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
+                      newTask.priority === opt.value
+                        ? `border-2 ${opt.color} ring-2 ring-offset-1 ring-${opt.value === 'CRITICAL' ? 'red' : opt.value === 'WARNING' ? 'amber' : 'emerald'}-400`
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {opt.value === 'CRITICAL' ? '🔴' : opt.value === 'WARNING' ? '🟡' : '🟢'} {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Task Title *</label>
                 <input
                   type="text"
                   value={newTask.title}
                   onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400"
-                  placeholder="Task title"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400 min-h-[44px] text-base"
+                  placeholder="e.g., Spray pesticides"
+                  autoFocus
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={newTask.description}
-                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400"
-                  placeholder="Task description"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Field</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Field *</label>
                 <select
                   value={newTask.fieldId}
                   onChange={(e) => setNewTask({ ...newTask, fieldId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400 min-h-[44px] text-base"
                 >
                   <option value="">Select field</option>
                   {fields?.map((field) => (
@@ -242,12 +389,13 @@ export const TasksPage: React.FC = () => {
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Worker (optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Worker</label>
                 <select
                   value={newTask.assignedToId}
                   onChange={(e) => setNewTask({ ...newTask, assignedToId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400 min-h-[44px] text-base"
                 >
                   <option value="">Unassigned</option>
                   {workers?.map((worker) => (
@@ -255,21 +403,22 @@ export const TasksPage: React.FC = () => {
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                <select
-                  value={newTask.priority}
-                  onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400"
-                >
-                  <option value="NORMAL">Normal</option>
-                  <option value="WARNING">Warning</option>
-                  <option value="CRITICAL">Critical</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
+                <textarea
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400 min-h-[80px] text-base"
+                  placeholder="Add details..."
+                  rows={2}
+                />
               </div>
+
               <button
                 onClick={handleCreateTask}
-                className="w-full py-2 bg-forest-500 text-white rounded-lg font-semibold hover:bg-forest-600"
+                disabled={!newTask.title || !newTask.fieldId}
+                className="w-full py-3 bg-forest-500 text-white rounded-xl font-semibold hover:bg-forest-600 min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create Task
               </button>

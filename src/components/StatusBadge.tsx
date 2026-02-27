@@ -36,9 +36,9 @@ const statusConfig = {
 };
 
 const sizeClasses = {
-  sm: 'px-2 py-0.5 text-xs gap-1',
-  md: 'px-2.5 py-1 text-sm gap-1.5',
-  lg: 'px-3 py-1.5 text-base gap-2',
+  sm: 'px-2 py-0.5 text-xs gap-1 min-h-[28px]',
+  md: 'px-2.5 py-1 text-sm gap-1.5 min-h-[32px]',
+  lg: 'px-3 py-1.5 text-base gap-2 min-h-[36px]',
 };
 
 const dotSizeClasses = {
@@ -54,8 +54,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
   return (
     <span
       className={`inline-flex items-center font-semibold rounded-full ${config.badge} ${sizeClasses[size]}`}
+      role="status"
+      aria-label={`Status: ${config.label}`}
     >
-      <span className={`rounded-full flex-shrink-0 ${config.dot} ${dotSizeClasses[size]}`} />
+      <span
+        className={`rounded-full flex-shrink-0 ${config.dot} ${dotSizeClasses[size]}`}
+        aria-hidden="true"
+      />
       {config.label}
     </span>
   );
