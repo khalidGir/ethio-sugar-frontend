@@ -16,9 +16,9 @@ import { Layout } from '../../components/Layout';
 import { AlertTriangle, Plus, ChevronDown, Search, X } from 'lucide-react';
 
 const incidentSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
   fieldId: z.string().min(1, 'Field is required'),
-  type: z.string().min(1, 'Type is required'),
-  severity: z.enum(['NORMAL', 'WARNING', 'CRITICAL']),
+  severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   description: z.string().min(10, 'Description must be at least 10 characters'),
 });
 
@@ -59,7 +59,7 @@ export const IncidentsPage: React.FC = () => {
     if (!search) return true;
     const searchLower = search.toLowerCase();
     return (
-      incident.type.toLowerCase().includes(searchLower) ||
+      incident.title.toLowerCase().includes(searchLower) ||
       incident.fieldName?.toLowerCase().includes(searchLower) ||
       incident.description?.toLowerCase().includes(searchLower)
     );
@@ -70,7 +70,12 @@ export const IncidentsPage: React.FC = () => {
 
   const onSubmit = async (data: IncidentFormData) => {
     try {
-      await createIncident(data).unwrap();
+      await createIncident({
+        title: data.title!,
+        fieldId: data.fieldId!,
+        severity: data.severity!,
+        description: data.description!,
+      }).unwrap();
       reset();
       refetch();
     } catch { }
@@ -149,9 +154,9 @@ export const IncidentsPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="type" className="label">Type</label>
+                <label htmlFor="title" className="label">Title</label>
                 <SelectWrapper>
-                  <select id="type" {...register('type')} className="select-field">
+                  <select id="title" {...register('title')} className="select-field">
                     <option value="">Select type</option>
                     <option value="Pest Infestation">Pest Infestation</option>
                     <option value="Disease Outbreak">Disease Outbreak</option>
@@ -160,7 +165,7 @@ export const IncidentsPage: React.FC = () => {
                     <option value="Other">Other</option>
                   </select>
                 </SelectWrapper>
-                {errors.type && <p className="field-error">⚠ {errors.type.message}</p>}
+                {errors.title && <p className="field-error">⚠ {errors.title.message}</p>}
               </div>
 
               <div>
@@ -168,8 +173,9 @@ export const IncidentsPage: React.FC = () => {
                 <SelectWrapper>
                   <select id="severity" {...register('severity')} className="select-field">
                     <option value="">Select severity</option>
-                    <option value="NORMAL">Normal</option>
-                    <option value="WARNING">Warning</option>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
                     <option value="CRITICAL">Critical</option>
                   </select>
                 </SelectWrapper>
@@ -219,7 +225,7 @@ export const IncidentsPage: React.FC = () => {
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
                     <th className="table-header">Field</th>
-                    <th className="table-header">Type</th>
+                    <th className="table-header">Title</th>
                     <th className="table-header">Severity</th>
                     <th className="table-header">Status</th>
                     <th className="table-header">Date</th>
@@ -232,7 +238,7 @@ export const IncidentsPage: React.FC = () => {
                     return (
                       <tr key={incident.id} className={`table-row ${rowBg}`}>
                         <td className="table-cell font-medium">{incident.fieldName || incident.fieldId}</td>
-                        <td className="table-cell">{incident.type}</td>
+                        <td className="table-cell">{incident.title}</td>
                         <td className="table-cell"><StatusBadge status={incident.severity} size="sm" /></td>
                         <td className="table-cell">
                           <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${incidentStatusStyle[incident.status] ?? 'bg-gray-100 text-gray-700'

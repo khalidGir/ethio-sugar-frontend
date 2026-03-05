@@ -5,6 +5,8 @@ import { useDispatch } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
 import { useNavigate } from 'react-router-dom';
 import { Bell, LogOut, Menu } from 'lucide-react';
+import { GlobalSearch } from './GlobalSearch';
+import { NotificationCenter } from './NotificationCenter';
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -77,17 +79,14 @@ export const Topbar: React.FC<TopbarProps> = ({
       </div>
 
       {/* Right: actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Global Search - Desktop */}
+        <div className="hidden md:block w-64 lg:w-80">
+          <GlobalSearch />
+        </div>
+
         {/* Notification bell */}
-        <button
-          className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors min-h-[44px] min-w-[44px]"
-          aria-label="View notifications"
-          aria-haspopup="true"
-        >
-          <Bell className="w-5 h-5 text-gray-600" aria-hidden="true" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-          <span className="sr-only">Notifications</span>
-        </button>
+        <NotificationCenter position="topbar" />
 
         {/* User avatar */}
         <div className="flex items-center gap-2.5" role="group" aria-label="User menu">

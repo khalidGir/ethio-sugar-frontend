@@ -95,7 +95,7 @@ export const TasksPage: React.FC = () => {
         description: newTask.description,
         fieldId: newTask.fieldId,
         assignedToId: newTask.assignedToId || undefined,
-        priority: newTask.priority,
+        priority: 'MEDIUM',
       }).unwrap();
       setShowCreateModal(false);
       setNewTask({ title: '', description: '', fieldId: '', assignedToId: '', priority: 'NORMAL' });

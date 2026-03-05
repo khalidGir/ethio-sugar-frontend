@@ -10,17 +10,17 @@ import { ClipboardList, CheckCircle, Clock } from 'lucide-react';
 type Task = {
   id: string;
   title: string;
-  description: string;
-  status: 'OPEN' | 'COMPLETED';
-  priority: 'NORMAL' | 'WARNING' | 'CRITICAL';
+  description?: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
   dueDate?: string;
   fieldName?: string;
 };
 
 const priorityConfig: Record<string, { label: string; color: string; bg: string }> = {
-  CRITICAL: { label: '🔴 Critical', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
-  WARNING: { label: '🟡 Warning', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
-  NORMAL: { label: '🟢 Normal', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+  HIGH: { label: '🔴 High', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
+  MEDIUM: { label: '🟡 Medium', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
+  LOW: { label: '🟢 Low', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
 };
 
 export const MyTasksPage: React.FC = () => {
@@ -40,13 +40,13 @@ export const MyTasksPage: React.FC = () => {
   if (isLoading) return <Layout><LoadingSpinner fullPage /></Layout>;
   if (error) return <Layout><ErrorMessage message="Failed to load tasks" onRetry={() => window.location.reload()} /></Layout>;
 
-  const openTasks = tasks?.filter(t => t.status === 'OPEN') || [];
+  const openTasks = tasks?.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS') || [];
   const completedTasks = tasks?.filter(t => t.status === 'COMPLETED') || [];
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-  const criticalTasks = openTasks.filter(t => t.priority === 'CRITICAL');
-  const warningTasks = openTasks.filter(t => t.priority === 'WARNING');
-  const normalTasks = openTasks.filter(t => t.priority === 'NORMAL');
+  const highPriorityTasks = openTasks.filter(t => t.priority === 'HIGH');
+  const mediumPriorityTasks = openTasks.filter(t => t.priority === 'MEDIUM');
+  const lowPriorityTasks = openTasks.filter(t => t.priority === 'LOW');
 
   return (
     <Layout>
@@ -79,45 +79,45 @@ export const MyTasksPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Critical Tasks */}
-        {criticalTasks.length > 0 && (
+        {/* High Priority Tasks */}
+        {highPriorityTasks.length > 0 && (
           <div>
             <h2 className="section-title flex items-center gap-2 mb-3">
-              <span className="text-red-500">🔴</span> Critical Priority
-              <span className="ml-auto px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-semibold">{criticalTasks.length}</span>
+              <span className="text-red-500">🔴</span> High Priority
+              <span className="ml-auto px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-semibold">{highPriorityTasks.length}</span>
             </h2>
             <div className="space-y-2">
-              {criticalTasks.map((task) => (
+              {highPriorityTasks.map((task) => (
                 <TaskCard key={task.id} task={task} onComplete={handleComplete} isCritical />
               ))}
             </div>
           </div>
         )}
 
-        {/* Warning Tasks */}
-        {warningTasks.length > 0 && (
+        {/* Medium Priority */}
+        {mediumPriorityTasks.length > 0 && (
           <div>
             <h2 className="section-title flex items-center gap-2 mb-3">
-              <span className="text-amber-500">🟡</span> Warning Priority
-              <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">{warningTasks.length}</span>
+              <span className="text-amber-500">🟡</span> Medium Priority
+              <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">{mediumPriorityTasks.length}</span>
             </h2>
             <div className="space-y-2">
-              {warningTasks.map((task) => (
+              {mediumPriorityTasks.map((task) => (
                 <TaskCard key={task.id} task={task} onComplete={handleComplete} />
               ))}
             </div>
           </div>
         )}
 
-        {/* Normal Tasks */}
-        {normalTasks.length > 0 && (
+        {/* Low Priority */}
+        {lowPriorityTasks.length > 0 && (
           <div>
             <h2 className="section-title flex items-center gap-2 mb-3">
-              <span className="text-emerald-500">🟢</span> Normal Priority
-              <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">{normalTasks.length}</span>
+              <span className="text-emerald-500">🟢</span> Low Priority
+              <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">{lowPriorityTasks.length}</span>
             </h2>
             <div className="space-y-2">
-              {normalTasks.map((task) => (
+              {lowPriorityTasks.map((task) => (
                 <TaskCard key={task.id} task={task} onComplete={handleComplete} />
               ))}
             </div>
@@ -185,7 +185,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onComplete, isCritical, isCom
             )}
           </div>
         </div>
-        {!isCompleted && task.status === 'OPEN' && (
+        {!isCompleted && (task.status === 'PENDING' || task.status === 'IN_PROGRESS') && (
           <button
             onClick={() => onComplete(task.id)}
             className="flex-shrink-0 px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-colors min-h-[44px] min-w-[100px] flex items-center justify-center gap-2"

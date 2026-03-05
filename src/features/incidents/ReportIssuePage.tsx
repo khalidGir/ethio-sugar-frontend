@@ -10,9 +10,9 @@ import { Layout } from '../../components/Layout';
 import { AlertTriangle, CheckCircle, Camera, X, Bug, Droplets, Wrench, Package } from 'lucide-react';
 
 const incidentSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
   fieldId: z.string().min(1, 'Field is required'),
-  type: z.string().min(1, 'Issue type is required'),
-  severity: z.enum(['NORMAL', 'WARNING', 'CRITICAL']),
+  severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   description: z.string().min(10, 'Description must be at least 10 characters'),
 });
 
@@ -35,12 +35,17 @@ export const ReportIssuePage: React.FC = () => {
   const { register, handleSubmit, formState: { errors }, reset, watch } =
     useForm<IncidentFormData>({
       resolver: zodResolver(incidentSchema),
-      defaultValues: { fieldId: '', severity: 'NORMAL' },
+      defaultValues: { fieldId: '', severity: 'LOW' as const },
     });
 
   const onSubmit = async (data: IncidentFormData) => {
     try {
-      await createIncident(data).unwrap();
+      await createIncident({
+        title: data.title!,
+        fieldId: data.fieldId!,
+        severity: data.severity!,
+        description: data.description!,
+      }).unwrap();
       setShowSuccess(true);
       reset();
       setSelectedPhoto(null);
@@ -89,7 +94,7 @@ export const ReportIssuePage: React.FC = () => {
                       key={type.value}
                       className={`
                         relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all min-h-[100px]
-                        ${watch('type') === type.value
+                        ${watch('title') === type.value
                           ? 'border-forest-500 bg-forest-50'
                           : 'border-gray-200 hover:border-gray-300 bg-white'
                         }
@@ -98,7 +103,7 @@ export const ReportIssuePage: React.FC = () => {
                       <input
                         type="radio"
                         value={type.value}
-                        {...register('type')}
+                        {...register('title')}
                         className="sr-only"
                       />
                       <Icon className="w-8 h-8 text-gray-600" />
@@ -107,7 +112,7 @@ export const ReportIssuePage: React.FC = () => {
                   );
                 })}
               </div>
-              {errors.type && <p className="field-error mt-2">⚠ {errors.type.message}</p>}
+              {errors.title && <p className="field-error mt-2">⚠ {errors.title.message}</p>}
             </div>
 
             {/* Field Selection */}
@@ -127,9 +132,9 @@ export const ReportIssuePage: React.FC = () => {
               <label className="label">How urgent?</label>
               <div className="grid grid-cols-3 gap-2 mt-2">
                 {[
-                  { value: 'NORMAL', label: 'Normal', color: 'text-emerald-700 bg-emerald-50 border-emerald-300' },
-                  { value: 'WARNING', label: 'Warning', color: 'text-amber-700 bg-amber-50 border-amber-300' },
-                  { value: 'CRITICAL', label: 'Urgent', color: 'text-red-700 bg-red-50 border-red-300' },
+                  { value: 'LOW', label: 'Low', color: 'text-emerald-700 bg-emerald-50 border-emerald-300' },
+                  { value: 'MEDIUM', label: 'Medium', color: 'text-amber-700 bg-amber-50 border-amber-300' },
+                  { value: 'HIGH', label: 'High', color: 'text-red-700 bg-red-50 border-red-300' },
                 ].map((opt) => (
                   <label
                     key={opt.value}

@@ -650,3 +650,345 @@ export interface DashboardSummary {
   weatherSummary?: CurrentWeather;
   recentActivities: any[];
 }
+
+// ============================================================
+// NEW: Enhanced UX Endpoints Types (Feb 28, 2026)
+// ============================================================
+
+// --- Pending Verification Queue ---
+export interface PendingVerificationLog {
+  id: string;
+  workerId: string;
+  fieldId: string;
+  activity: string;
+  activityType: string;
+  hoursSpent: number;
+  resourcesUsed?: string;
+  observations?: string;
+  photos?: string[];
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  loggedAt: string;
+  createdAt: string;
+  worker: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+  field: {
+    id: string;
+    name: string;
+    cropType: string;
+  };
+  task?: {
+    id: string;
+    title: string;
+  };
+}
+
+export interface PendingVerificationResponse {
+  success: true;
+  data: {
+    logs: PendingVerificationLog[];
+    count: number;
+    total: number;
+    requiresAction: boolean;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  };
+  message?: string;
+  meta: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
+// --- Batch Verification ---
+export interface BatchVerifyRequest {
+  logIds: string[];
+  status: 'VERIFIED' | 'REJECTED';
+  reason?: string;
+}
+
+export interface BatchVerifyResponse {
+  success: true;
+  data: {
+    verified: string[];
+    notFound: string[];
+    count: number;
+  };
+  message?: string;
+  meta: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
+// --- Priority Dashboard Items ---
+export interface PriorityIncident {
+  id: string;
+  type: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'WARNING';
+  description: string;
+  status: string;
+  fieldId: string;
+  field: {
+    id: string;
+    name: string;
+    cropType: string;
+  };
+  reportedBy: {
+    id: string;
+    fullName: string;
+  };
+  createdAt: string;
+}
+
+export interface PriorityApproval {
+  id: string;
+  type: string;
+  referenceId: string;
+  status: 'PENDING';
+  confidenceScore?: number;
+  requestedBy: {
+    id: string;
+    fullName: string;
+  };
+  createdAt: string;
+}
+
+export interface PriorityTask {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  priority: string;
+  dueDate: string;
+  field: {
+    id: string;
+    name: string;
+  };
+  assignedTo: {
+    id: string;
+    fullName: string;
+  };
+}
+
+export interface WeatherAlert {
+  type: 'HEAVY_RAIN' | 'DROUGHT' | 'HIGH_WIND' | 'FROST' | 'HEAT_WAVE';
+  severity: 'CRITICAL' | 'WARNING' | 'INFO';
+  message: string;
+  validUntil: string;
+}
+
+export interface RecommendedAction {
+  type: 'INCIDENT_RESPONSE' | 'IRRIGATION' | 'VERIFY_LOGS' | 'FERTILIZATION' | 'PEST_CONTROL';
+  field: string;
+  fieldId: string;
+  reason: string;
+  urgency: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+export interface PriorityItemsResponse {
+  success: true;
+  data: {
+    criticalIncidents: PriorityIncident[];
+    pendingApprovals: PriorityApproval[];
+    overdueTasks: PriorityTask[];
+    weatherAlerts: WeatherAlert[];
+    pendingLogCount: number;
+    recommendedActions: RecommendedAction[];
+  };
+  message?: string;
+  meta: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
+// --- Global Search ---
+export interface SearchResultField {
+  id: string;
+  name: string;
+  cropType: string;
+  soilType?: string;
+  area?: number;
+}
+
+export interface SearchResultWorker {
+  id: string;
+  fullName: string;
+  email: string;
+  telegramUsername?: string;
+}
+
+export interface SearchResultTask {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  field: {
+    id: string;
+    name: string;
+  };
+  assignedTo: {
+    id: string;
+    fullName: string;
+  };
+}
+
+export interface SearchResponse {
+  success: true;
+  data: {
+    fields: SearchResultField[];
+    workers: SearchResultWorker[];
+    incidents: any[];
+    tasks: SearchResultTask[];
+    totalResults: number;
+  };
+  message?: string;
+  meta: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
+// --- Task Completion ---
+export interface CompleteTaskRequest {
+  completionNotes?: string;
+  photoUrls?: string[];
+  gpsCoordinates?: {
+    lat: number;
+    lng: number;
+  };
+  actualHours?: number;
+}
+
+export interface TaskCompletionProof {
+  completedAt: string;
+  completedBy: string;
+  photos?: string[];
+  gpsCoordinates?: {
+    lat: number;
+    lng: number;
+  };
+  actualHours?: number;
+}
+
+export interface CompleteTaskResponse {
+  success: true;
+  data: {
+    task: {
+      id: string;
+      title: string;
+      status: 'COMPLETED';
+      completedAt: string;
+      field: {
+        id: string;
+        name: string;
+      };
+      assignedTo: {
+        id: string;
+        fullName: string;
+      };
+    };
+    completionProof: TaskCompletionProof;
+  };
+  message?: string;
+  meta: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
+// --- Offline Sync ---
+export interface OfflineAction {
+  type: 'CREATE_DAILY_LOG' | 'COMPLETE_TASK' | 'VERIFY_LOG' | 'CREATE_INCIDENT';
+  data: Record<string, any>;
+  timestamp: string;
+  offlineId: string;
+}
+
+export interface SyncOfflineActionsRequest {
+  actions: OfflineAction[];
+}
+
+export interface SyncOfflineActionsResponse {
+  success: true;
+  data: {
+    success: string[];
+    failed: string[];
+    conflicts: string[];
+    summary: {
+      total: number;
+      succeeded: number;
+      failed: number;
+      conflicts: number;
+    };
+  };
+  message?: string;
+  meta: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
+// --- Notifications ---
+export interface Notification {
+  id: string;
+  type: 'LOG_VERIFIED' | 'TASK_ASSIGNED' | 'APPROVAL_REQUIRED' | 'INCIDENT_ALERT' | 'WEATHER_ALERT';
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  actionUrl: string;
+}
+
+export interface NotificationsResponse {
+  success: true;
+  data: {
+    notifications: Notification[];
+    unreadCount: number;
+    pagination: {
+      page: number;
+      limit: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  };
+  message?: string;
+  meta: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
+// --- API Response Meta (Standard Format) ---
+export interface ApiResponseMeta {
+  timestamp: string;
+  requestId: string;
+}
+
+export interface ApiResponse<T> {
+  success: true;
+  data: T;
+  message?: string;
+  meta: ApiResponseMeta;
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    userMessage?: string;
+    retryable?: boolean;
+    suggestedAction?: string;
+  };
+  meta?: ApiResponseMeta;
+}

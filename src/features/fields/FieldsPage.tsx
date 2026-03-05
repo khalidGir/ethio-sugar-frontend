@@ -11,15 +11,15 @@ import { Link } from 'react-router-dom';
 import { MapPin, Layers, ArrowRight, Droplets, X } from 'lucide-react';
 
 const statusBorderColor: Record<string, string> = {
-  NORMAL: 'border-t-emerald-500',
-  WARNING: 'border-t-amber-500',
-  CRITICAL: 'border-t-red-500',
+  ACTIVE: 'border-t-emerald-500',
+  INACTIVE: 'border-t-amber-500',
+  MAINTENANCE: 'border-t-red-500',
 };
 
 const statusBg: Record<string, string> = {
-  NORMAL: '',
-  WARNING: '',
-  CRITICAL: 'shadow-glow-red',
+  ACTIVE: '',
+  INACTIVE: '',
+  MAINTENANCE: 'shadow-glow-red',
 };
 
 export const FieldsPage: React.FC = () => {
@@ -51,9 +51,9 @@ export const FieldsPage: React.FC = () => {
     );
   }
 
-  const normalCount = fields.filter(f => f.status === 'NORMAL').length;
-  const warningCount = fields.filter(f => f.status === 'WARNING').length;
-  const criticalCount = fields.filter(f => f.status === 'CRITICAL').length;
+  const normalCount = fields.filter(f => f.status === 'ACTIVE').length;
+  const warningCount = fields.filter(f => f.status === 'INACTIVE').length;
+  const criticalCount = fields.filter(f => f.status === 'MAINTENANCE').length;
 
   const handleLogIrrigation = async (fieldId: string) => {
     setSelectedFieldId(fieldId);
@@ -63,7 +63,14 @@ export const FieldsPage: React.FC = () => {
   const handleSubmitIrrigation = async () => {
     if (!selectedFieldId) return;
     try {
-      await createIrrigationLog({ fieldId: selectedFieldId, moistureDeficit }).unwrap();
+      await createIrrigationLog({ 
+        fieldId: selectedFieldId, 
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        waterUsed: 100,
+        irrigationType: 'SPRINKLER',
+        notes: 'Logged from field page'
+      }).unwrap();
       setShowIrrigationModal(false);
       setMoistureDeficit(0);
     } catch (err) {
@@ -104,9 +111,9 @@ export const FieldsPage: React.FC = () => {
         {/* Fields Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {fields.map((field) => {
-            const borderClass = statusBorderColor[field.status] ?? statusBorderColor.NORMAL;
+            const borderClass = statusBorderColor[field.status] ?? statusBorderColor.ACTIVE;
             const bgClass = statusBg[field.status] ?? '';
-            const isCritical = field.status === 'CRITICAL';
+            const isMaintenance = field.status === 'MAINTENANCE';
 
             return (
               <div
@@ -114,16 +121,16 @@ export const FieldsPage: React.FC = () => {
                 className={`
                   bg-white rounded-2xl border-t-4 shadow-card
                   ${borderClass} ${bgClass}
-                  ${isCritical ? 'ring-1 ring-red-200' : ''}
+                  ${isMaintenance ? 'ring-1 ring-red-200' : ''}
                   transition-all duration-200
                 `}
               >
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-2.5">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isCritical ? 'bg-red-100' : 'bg-forest-50'
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isMaintenance ? 'bg-red-100' : 'bg-forest-50'
                         }`}>
-                        <MapPin className={`w-4.5 h-4.5 ${isCritical ? 'text-red-500' : 'text-forest-500'}`} size={18} />
+                        <MapPin className={`w-4.5 h-4.5 ${isMaintenance ? 'text-red-500' : 'text-forest-500'}`} size={18} />
                       </div>
                       <h3 className="text-base font-bold text-gray-900">{field.name}</h3>
                     </div>
@@ -133,8 +140,8 @@ export const FieldsPage: React.FC = () => {
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Layers className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                      <span className="font-medium text-gray-500 text-xs">Crop:</span>
-                      <span className="text-gray-800 font-medium">{field.cropType}</span>
+                      <span className="font-medium text-gray-500 text-xs">Status:</span>
+                      <span className="text-gray-800 font-medium">{field.status}</span>
                     </div>
                     {field.area && (
                       <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -191,7 +198,7 @@ export const FieldsPage: React.FC = () => {
             {selectedField && (
               <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
                 <p className="text-sm text-blue-800 font-medium">Field: {selectedField.name}</p>
-                <p className="text-xs text-blue-600 mt-0.5">Crop: {selectedField.cropType}</p>
+                <p className="text-xs text-blue-600 mt-0.5">Status: {selectedField.status}</p>
               </div>
             )}
 

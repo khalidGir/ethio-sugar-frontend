@@ -38,6 +38,19 @@ import {
   AuditLogFilters,
   Approval,
   ApprovalDecision,
+  // New UX Enhancement Types
+  PendingVerificationLog,
+  PendingVerificationResponse,
+  BatchVerifyRequest,
+  BatchVerifyResponse,
+  PriorityItemsResponse,
+  SearchResponse,
+  CompleteTaskRequest,
+  CompleteTaskResponse,
+  SyncOfflineActionsRequest,
+  SyncOfflineActionsResponse,
+  NotificationsResponse,
+  Notification,
 } from '../types';
 
 const baseQuery = fetchBaseQuery({
@@ -351,6 +364,18 @@ export const api = createApi({
         url: '/uploads',
         params: params || {},
       }),
+      transformResponse: (response: { images: Array<{ filename: string; url: string; size: number; uploadedAt: Date }>; count: number }) => {
+        return response.images.map((img) => ({
+          id: img.filename,
+          fieldId: '',
+          imageUrl: img.url,
+          thumbnailUrl: img.url,
+          imageType: 'general' as const,
+          tags: [],
+          uploadedBy: '',
+          uploadedAt: img.uploadedAt instanceof Date ? img.uploadedAt.toISOString() : String(img.uploadedAt),
+        }));
+      },
       providesTags: ['Images'],
     }),
 
@@ -416,6 +441,103 @@ export const api = createApi({
       }),
       invalidatesTags: ['Approvals'],
     }),
+
+    // ==================== UX ENHANCEMENTS (Feb 28, 2026) ====================
+    
+    // Pending Verification Queue
+    getPendingVerifications: build.query<PendingVerificationResponse, {
+      fieldId?: string;
+      workerId?: string;
+      dateRange?: { start: string; end: string };
+      page?: number;
+      limit?: number;
+    } | undefined>({
+      query: (params) => {
+        const queryParams: any = {
+          page: params?.page || 1,
+          limit: params?.limit || 20,
+        };
+        if (params?.fieldId) queryParams.fieldId = params.fieldId;
+        if (params?.workerId) queryParams.workerId = params.workerId;
+        if (params?.dateRange) {
+          queryParams.dateRange = `${params.dateRange.start},${params.dateRange.end}`;
+        }
+        return {
+          url: '/daily-logs/pending-verification',
+          params: queryParams,
+        };
+      },
+      providesTags: ['DailyLogs'],
+    }),
+
+    // Batch Verification
+    batchVerifyLogs: build.mutation<BatchVerifyResponse, BatchVerifyRequest>({
+      query: (body) => ({
+        url: '/daily-logs/batch-verify',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['DailyLogs', 'Dashboard'],
+    }),
+
+    // Priority Dashboard Items
+    getPriorityItems: build.query<PriorityItemsResponse, void>({
+      query: () => '/dashboard/priority-items',
+      providesTags: ['Dashboard'],
+    }),
+
+    // Global Search
+    search: build.query<SearchResponse, { q: string; type?: 'all' | 'fields' | 'workers' | 'incidents' | 'tasks' }>({
+      query: ({ q, type = 'all' }) => ({
+        url: '/search',
+        params: { q, type },
+      }),
+    }),
+
+    // Task Completion
+    completeTask: build.mutation<CompleteTaskResponse, { id: string; data: CompleteTaskRequest }>({
+      query: ({ id, ...body }) => ({
+        url: `/tasks/${id}/complete`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['Tasks', 'Dashboard'],
+    }),
+
+    // Offline Sync
+    syncOfflineActions: build.mutation<SyncOfflineActionsResponse, SyncOfflineActionsRequest>({
+      query: (body) => ({
+        url: '/sync/offline-actions',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['DailyLogs', 'Tasks', 'Incidents'],
+    }),
+
+    // Notifications
+    getNotifications: build.query<NotificationsResponse, { status?: 'unread' | 'all'; limit?: number; page?: number } | undefined>({
+      query: (params) => ({
+        url: '/notifications',
+        params: params || { status: 'unread', limit: 20 },
+      }),
+      providesTags: ['Dashboard'],
+    }),
+
+    markNotificationRead: build.mutation<Notification, { id: string }>({
+      query: ({ id }) => ({
+        url: `/notifications/${id}/read`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Dashboard'],
+    }),
+
+    markAllNotificationsRead: build.mutation<void, void>({
+      query: () => ({
+        url: '/notifications/read-all',
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Dashboard'],
+    }),
   }),
 });
 
@@ -471,4 +593,14 @@ export const {
   useGetPendingApprovalsQuery,
   useGetApprovalHistoryQuery,
   useDecideApprovalMutation,
+  // UX Enhancements (Feb 28, 2026)
+  useGetPendingVerificationsQuery,
+  useBatchVerifyLogsMutation,
+  useGetPriorityItemsQuery,
+  useSearchQuery,
+  useCompleteTaskMutation,
+  useSyncOfflineActionsMutation,
+  useGetNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
 } = api;
