@@ -103,6 +103,7 @@ export const api = createApi({
 
     getDashboardSummary: build.query<DashboardSummary, void>({
       query: () => '/users/summary',
+      transformResponse: (response: { data: DashboardSummary }) => response.data,
       providesTags: ['Dashboard'],
     }),
 
@@ -195,12 +196,24 @@ export const api = createApi({
       providesTags: ['Users'],
     }),
 
+    createUser: build.mutation<any, { email: string; password: string; fullName: string; role: string }>({
+      query: (body) => ({
+        url: '/auth/register',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Users'],
+    }),
+
     // ==================== SOIL MANAGEMENT ====================
     getSoilData: build.query<SoilData[], { fieldId?: string } | undefined>({
       query: (params) => ({
         url: '/soil-data',
         params: params || {},
       }),
+      transformResponse: (response: { data: { data: SoilData[] } }) => {
+        return response.data?.data || [];
+      },
       providesTags: ['Soil'],
     }),
 
@@ -221,6 +234,9 @@ export const api = createApi({
     // ==================== WEATHER ====================
     getCurrentWeather: build.query<CurrentWeather, void>({
       query: () => '/weather/current',
+      transformResponse: (response: { data: CurrentWeather }) => {
+        return response.data;
+      },
       providesTags: ['Weather'],
     }),
 
@@ -229,6 +245,9 @@ export const api = createApi({
         url: '/weather/forecast',
         params: params || {},
       }),
+      transformResponse: (response: { data: WeatherForecast[] }) => {
+        return response.data || [];
+      },
       providesTags: ['Weather'],
     }),
 
@@ -237,6 +256,9 @@ export const api = createApi({
         url: '/weather-records/history',
         params: params || {},
       }),
+      transformResponse: (response: { data: WeatherRecord[] }) => {
+        return response.data || [];
+      },
       providesTags: ['Weather'],
     }),
 
@@ -246,6 +268,9 @@ export const api = createApi({
         url: '/daily-logs',
         params: params || {},
       }),
+      transformResponse: (response: { data: { data: DailyLog[] } }) => {
+        return response.data?.data || [];
+      },
       providesTags: ['DailyLogs'],
     }),
 
@@ -281,6 +306,9 @@ export const api = createApi({
         url: '/fertilizer-logs',
         params: params || {},
       }),
+      transformResponse: (response: { data: { data: FertilizerApplication[] } }) => {
+        return response.data?.data || [];
+      },
       providesTags: ['Fertilizer'],
     }),
 
@@ -365,12 +393,14 @@ export const api = createApi({
         params: params || {},
       }),
       transformResponse: (response: { images: Array<{ filename: string; url: string; size: number; uploadedAt: Date }>; count: number }) => {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
+        const apiBase = baseUrl.replace('/api/v1', '');
         return response.images.map((img) => ({
           id: img.filename,
           fieldId: '',
-          imageUrl: img.url,
-          thumbnailUrl: img.url,
-          imageType: 'general' as const,
+          imageUrl: `${apiBase}${img.url}`,
+          thumbnailUrl: `${apiBase}${img.url}`,
+          imageType: 'GENERAL' as const,
           tags: [],
           uploadedBy: '',
           uploadedAt: img.uploadedAt instanceof Date ? img.uploadedAt.toISOString() : String(img.uploadedAt),
@@ -384,7 +414,7 @@ export const api = createApi({
         const formData = new FormData();
         formData.append('image', body.image);
         formData.append('fieldId', body.fieldId);
-        if (body.caption) formData.append('caption', body.caption);
+        if (body.caption) formData.append('description', body.caption);
         if (body.imageType) formData.append('imageType', body.imageType);
         if (body.tags) formData.append('tags', JSON.stringify(body.tags));
         if (body.linkedIncidentId) formData.append('linkedIncidentId', body.linkedIncidentId);
@@ -394,6 +424,22 @@ export const api = createApi({
           url: '/uploads/image',
           method: 'POST',
           body: formData,
+        };
+      },
+      transformResponse: (response: { data: { url: string; metadata: any } }) => {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
+        const apiBase = baseUrl.replace('/api/v1', '');
+        const img = response.data;
+        return {
+          id: img.metadata.id,
+          fieldId: img.metadata.fieldId,
+          imageUrl: `${apiBase}${img.url}`,
+          thumbnailUrl: `${apiBase}${img.url}`,
+          imageType: img.metadata.imageType,
+          caption: img.metadata.description,
+          tags: [],
+          uploadedBy: img.metadata.uploadedBy,
+          uploadedAt: img.metadata.uploadedAt,
         };
       },
       invalidatesTags: ['Images', 'Fields'],
@@ -409,10 +455,27 @@ export const api = createApi({
 
     // ==================== AUDIT LOGS ====================
     getAuditLogs: build.query<AuditLog[], AuditLogFilters | undefined>({
-      query: (params) => ({
-        url: '/audit-logs',
-        params: params || {},
-      }),
+      query: (params) => {
+        const cleanParams: Record<string, string> = {};
+        if (params) {
+          Object.entries(params).forEach(([key, value]) => {
+            if (value && value !== 'all' && value !== '') {
+              cleanParams[key] = value;
+            }
+          });
+        }
+        return {
+          url: '/audit',
+          params: cleanParams,
+        };
+      },
+      transformResponse: (response: any) => {
+        // Handle different response structures
+        if (Array.isArray(response)) return response;
+        if (response?.data?.logs) return response.data.logs;
+        if (response?.logs) return response.logs;
+        return [];
+      },
       providesTags: ['AuditLogs'],
     }),
 
@@ -466,6 +529,9 @@ export const api = createApi({
           url: '/daily-logs/pending-verification',
           params: queryParams,
         };
+      },
+      transformResponse: (response: { data: { data: PendingVerificationResponse } }) => {
+        return response.data?.data;
       },
       providesTags: ['DailyLogs'],
     }),
@@ -556,6 +622,7 @@ export const {
   useCreateTaskMutation,
   useGetMyTasksQuery,
   useGetUsersQuery,
+  useCreateUserMutation,
   // Soil
   useGetSoilDataQuery,
   useGetSoilAnalysisQuery,
