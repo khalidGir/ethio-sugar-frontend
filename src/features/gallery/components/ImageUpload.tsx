@@ -262,28 +262,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onSubmit, onCancel }) 
         )}
       </div>
 
-      {/* Tags */}
-      <div>
-        <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
-          Tags
-        </label>
-        <input
-          type="text"
-          id="tags"
-          {...register('tags')}
-          className="input-field"
-          placeholder="Enter tags separated by commas"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          e.g., healthy, growth, stage-3
-        </p>
-        {errors.tags && (
-          <p className="text-red-500 text-sm mt-1" role="alert">
-            {errors.tags.message}
-          </p>
-        )}
-      </div>
-
       {/* Actions */}
       <div className="flex gap-3 pt-4 border-t border-gray-200">
         <button

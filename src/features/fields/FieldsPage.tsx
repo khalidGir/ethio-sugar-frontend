@@ -51,9 +51,9 @@ export const FieldsPage: React.FC = () => {
     );
   }
 
-  const normalCount = fields.filter(f => f.status === 'ACTIVE').length;
-  const warningCount = fields.filter(f => f.status === 'INACTIVE').length;
-  const criticalCount = fields.filter(f => f.status === 'MAINTENANCE').length;
+  const normalCount = fields.filter(f => (f.status || 'ACTIVE') === 'ACTIVE').length;
+  const warningCount = fields.filter(f => (f.status || 'INACTIVE') === 'INACTIVE').length;
+  const criticalCount = fields.filter(f => (f.status || 'MAINTENANCE') === 'MAINTENANCE').length;
 
   const handleLogIrrigation = async (fieldId: string) => {
     setSelectedFieldId(fieldId);

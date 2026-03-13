@@ -26,9 +26,21 @@ export const GalleryDashboardPage: React.FC = () => {
   const [deleteImage] = useDeleteImageMutation();
 
   const canUpload = user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'WORKER';
+  const isWorker = user?.role === 'WORKER';
+  const [showMyUploads, setShowMyUploads] = useState(isWorker);
+
+  // Get page title based on role
+  const pageTitle = isWorker ? 'Field Photos' : 'Image Gallery';
+  const pageDescription = isWorker 
+    ? 'View and upload field photos for AI analysis' 
+    : 'Browse and manage field images';
 
   // Apply filters
   const filteredImages = images.filter((image) => {
+    // For workers, filter by their uploads if toggle is on
+    if (isWorker && showMyUploads && image.uploadedBy !== user?.id) {
+      return false;
+    }
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       const matchesSearch =
@@ -116,14 +128,14 @@ export const GalleryDashboardPage: React.FC = () => {
     <Layout>
       <div className="space-y-6 animate-fade-in">
         {/* Breadcrumbs */}
-        <Breadcrumbs items={[{ label: 'Image Gallery' }]} />
+        <Breadcrumbs items={[{ label: pageTitle }]} />
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="page-header">Image Gallery</h1>
+            <h1 className="page-header">{pageTitle}</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              Browse and manage field images
+              {pageDescription}
             </p>
           </div>
           {canUpload && (
@@ -136,6 +148,21 @@ export const GalleryDashboardPage: React.FC = () => {
             </button>
           )}
         </div>
+
+        {/* Worker Filter Toggle */}
+        {isWorker && (
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showMyUploads}
+                onChange={(e) => setShowMyUploads(e.target.checked)}
+                className="w-4 h-4 text-forest-600 rounded border-gray-300 focus:ring-forest-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Show only my uploads</span>
+            </label>
+          </div>
+        )}
 
         {/* Filter */}
         <ImageFilter images={images} onFilterChange={handleFilterChange} />
@@ -247,7 +274,7 @@ export const GalleryDashboardPage: React.FC = () => {
       {/* Upload Modal */}
       {showUploadModal && canUpload && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
             <ImageUpload
               onSubmit={handleUpload}
               onCancel={() => setShowUploadModal(false)}

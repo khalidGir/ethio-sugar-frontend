@@ -20,105 +20,118 @@ import {
   CheckCircle,
 } from 'lucide-react';
 
-const menuItems = [
-  // ADMIN menu items
+interface MenuCategory {
+  title: string;
+  roles: string[];
+  items: {
+    path: string;
+    label: string;
+    icon: React.ElementType;
+    roles: string[];
+  }[];
+}
+
+const menuCategories: MenuCategory[] = [
+  // ─── Shared: Overview ───────────────────────────────────────────────────────
   {
-    path: '/dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
+    title: 'Overview',
     roles: ['ADMIN', 'MANAGER', 'WORKER', 'AGRONOMIST'],
+    items: [
+      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER', 'WORKER', 'AGRONOMIST'] },
+    ]
   },
+
+  // ─── Agronomist: Their core science work ─────────────────────────────────── 
   {
-    path: '/users',
-    label: 'Users',
-    icon: Users,
-    roles: ['ADMIN'],
+    title: 'Agronomy & Environment',
+    roles: ['AGRONOMIST', 'MANAGER'],
+    items: [
+      { path: '/fields',      label: 'Fields',             icon: MapPin,     roles: ['MANAGER'] },
+      { path: '/soil',        label: 'Soil Health',         icon: Beaker,     roles: ['MANAGER', 'AGRONOMIST'] },
+      { path: '/weather',     label: 'Weather Intelligence',icon: Cloud,      roles: ['MANAGER', 'AGRONOMIST'] },
+      { path: '/crop-plans',  label: 'Crop Planning',       icon: Calendar,   roles: ['MANAGER', 'AGRONOMIST'] },
+      { path: '/fertilizer',  label: 'Fertilizer',          icon: Sprout,     roles: ['MANAGER', 'AGRONOMIST'] },
+    ]
   },
+
+  // ─── Agronomist: Field Intelligence ──────────────────────────────────────── 
   {
-    path: '/tasks',
-    label: 'Tasks',
-    icon: CheckSquare,
+    title: 'Field Intelligence',
+    roles: ['AGRONOMIST', 'ADMIN'],
+    items: [
+      { path: '/gallery',    label: 'Image Diagnostics', icon: ImageIcon,    roles: ['ADMIN', 'AGRONOMIST'] },
+      { path: '/incidents',  label: 'Incidents',         icon: AlertTriangle, roles: ['ADMIN', 'AGRONOMIST'] },
+    ]
+  },
+
+  // ─── Agronomist: Analytics & Action ──────────────────────────────────────── 
+  {
+    title: 'Analytics & Action',
+    roles: ['AGRONOMIST', 'ADMIN', 'MANAGER'],
+    items: [
+      { path: '/approvals', label: 'AI Approvals',      icon: CheckCircle, roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'] },
+      { path: '/reports',   label: 'Agronomic Reports', icon: BarChart3,   roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'] },
+    ]
+  },
+
+  // ─── Worker: Their simplified tools ──────────────────────────────────────── 
+  {
+    title: 'My Work',
+    roles: ['WORKER'],
+    items: [
+      { path: '/my-tasks',     label: 'My Tasks',    icon: ClipboardList,  roles: ['WORKER'] },
+      { path: '/daily-logs',   label: 'Daily Logs',  icon: ClipboardCheck, roles: ['WORKER'] },
+      { path: '/report-issue', label: 'Report Issue',icon: AlertTriangle,  roles: ['WORKER'] },
+      { path: '/weather',      label: 'Weather',     icon: Cloud,          roles: ['WORKER'] },
+      { path: '/gallery',      label: 'Field Photos', icon: ImageIcon,     roles: ['WORKER'] },
+    ]
+  },
+
+  // ─── Admin/Manager: Operations control room ──────────────────────────────── 
+  {
+    title: 'Operations',
     roles: ['ADMIN', 'MANAGER'],
+    items: [
+      { path: '/tasks',      label: 'Tasks',       icon: CheckSquare,    roles: ['ADMIN', 'MANAGER'] },
+      { path: '/daily-logs', label: 'Daily Logs',  icon: ClipboardCheck, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/fields',     label: 'Fields',      icon: MapPin,         roles: ['ADMIN', 'MANAGER'] },
+      { path: '/gallery',    label: 'Image Gallery',icon: ImageIcon,     roles: ['ADMIN', 'MANAGER'] },
+      { path: '/weather',    label: 'Weather',     icon: Cloud,          roles: ['ADMIN', 'MANAGER'] },
+    ]
   },
+
+  // ─── Manager: Agronomy ──────────────────────────────────────────────────────── 
   {
-    path: '/incidents',
-    label: 'Incidents',
-    icon: AlertTriangle,
-    roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
+    title: 'Agronomy',
+    roles: ['MANAGER'],
+    items: [
+      { path: '/incidents',  label: 'Incidents',   icon: AlertTriangle,  roles: ['MANAGER'] },
+      { path: '/soil',        label: 'Soil Health',         icon: Beaker,     roles: ['MANAGER'] },
+      { path: '/weather',     label: 'Weather Intelligence', icon: Cloud,      roles: ['MANAGER'] },
+      { path: '/crop-plans',  label: 'Crop Planning',        icon: Calendar,   roles: ['MANAGER'] },
+      { path: '/fertilizer',  label: 'Fertilizer',           icon: Sprout,     roles: ['MANAGER'] },
+    ]
   },
+
+  // ─── Admin: Agronomy (full access) ──────────────────────────────────────────── 
   {
-    path: '/fields',
-    label: 'Fields',
-    icon: MapPin,
-    roles: ['ADMIN', 'MANAGER', 'WORKER', 'AGRONOMIST'],
-  },
-  // New menu items for Phase 1 Critical Gaps
-  {
-    path: '/soil',
-    label: 'Soil Management',
-    icon: Beaker,
-    roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
-  },
-  {
-    path: '/weather',
-    label: 'Weather',
-    icon: Cloud,
-    roles: ['ADMIN', 'MANAGER', 'WORKER', 'AGRONOMIST'],
-  },
-  {
-    path: '/daily-logs',
-    label: 'Daily Logs',
-    icon: ClipboardCheck,
-    roles: ['ADMIN', 'MANAGER', 'WORKER', 'AGRONOMIST'],
-  },
-  {
-    path: '/fertilizer',
-    label: 'Fertilizer',
-    icon: Sprout,
-    roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
-  },
-  {
-    path: '/crop-plans',
-    label: 'Crop Planning',
-    icon: Calendar,
-    roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
-  },
-  {
-    path: '/reports',
-    label: 'Reports',
-    icon: BarChart3,
-    roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
-  },
-  {
-    path: '/approvals',
-    label: 'Approvals',
-    icon: CheckCircle,
-    roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
-  },
-  {
-    path: '/gallery',
-    label: 'Image Gallery',
-    icon: ImageIcon,
-    roles: ['ADMIN', 'MANAGER', 'WORKER', 'AGRONOMIST'],
-  },
-  {
-    path: '/admin/audit-logs',
-    label: 'Audit Logs',
-    icon: ShieldCheck,
+    title: 'Agronomy',
     roles: ['ADMIN'],
+    items: [
+      { path: '/soil',        label: 'Soil Health',         icon: Beaker,     roles: ['ADMIN'] },
+      { path: '/crop-plans',  label: 'Crop Planning',        icon: Calendar,   roles: ['ADMIN'] },
+      { path: '/fertilizer',  label: 'Fertilizer',           icon: Sprout,     roles: ['ADMIN'] },
+    ]
   },
-  // WORKER menu items (simplified)
+
+  // ─── Admin only ──────────────────────────────────────────────────────────── 
   {
-    path: '/my-tasks',
-    label: 'My Tasks',
-    icon: ClipboardList,
-    roles: ['WORKER'],
-  },
-  {
-    path: '/report-issue',
-    label: 'Report Issue',
-    icon: AlertTriangle,
-    roles: ['WORKER'],
+    title: 'Administration',
+    roles: ['ADMIN'],
+    items: [
+      { path: '/users',           label: 'Users',      icon: Users,       roles: ['ADMIN'] },
+      { path: '/admin/audit-logs',label: 'Audit Logs', icon: ShieldCheck, roles: ['ADMIN'] },
+    ]
   },
 ];
 
@@ -126,15 +139,12 @@ const roleBadgeColor: Record<string, string> = {
   ADMIN: 'bg-amber-400/20 text-amber-300 border border-amber-400/30',
   MANAGER: 'bg-blue-400/20 text-blue-300 border border-blue-400/30',
   WORKER: 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30',
+  AGRONOMIST: 'bg-purple-400/20 text-purple-300 border border-purple-400/30',
 };
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
-
-  const visibleItems = menuItems.filter(
-    (item) => user?.role && item.roles.includes(user.role)
-  );
 
   return (
     <aside
@@ -158,43 +168,54 @@ export const Sidebar: React.FC = () => {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4" role="navigation" aria-label="Primary navigation">
-        <p className="text-white/70 text-[10px] font-semibold uppercase tracking-widest px-3 mb-3">
-          Navigation
-        </p>
-        <ul className="space-y-1" role="menubar">
-          {visibleItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
+        {menuCategories
+          .filter(cat => user?.role && cat.roles.includes(user.role))
+          .map((category, idx) => {
+            const visibleItems = category.items.filter(item => user?.role && item.roles.includes(user.role));
+            if (visibleItems.length === 0) return null;
+            
             return (
-              <li key={item.path} role="none">
-                <Link
-                  to={item.path}
-                  role="menuitem"
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`
-                    group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium
-                    transition-all duration-150 relative min-h-[44px]
-                    ${isActive
-                      ? 'bg-forest-500/25 text-white'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                    }
-                  `}
-                >
-                  {/* Active indicator */}
-                  {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-forest-400 rounded-r-full" />
-                  )}
-                  <Icon
-                    className={`w-5 h-5 flex-shrink-0 transition-colors ${isActive ? 'text-forest-400' : 'text-white/50 group-hover:text-white'
-                      }`}
-                    aria-hidden="true"
-                  />
-                  {item.label}
-                </Link>
-              </li>
+              <div key={idx} className="mb-6">
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-3 mb-2">
+                  {category.title}
+                </p>
+                <ul className="space-y-1" role="menubar">
+                  {visibleItems.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    const Icon = item.icon;
+                    return (
+                      <li key={item.path} role="none">
+                        <Link
+                          to={item.path}
+                          role="menuitem"
+                          aria-current={isActive ? 'page' : undefined}
+                          className={`
+                            group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                            transition-all duration-150 relative min-h-[40px]
+                            ${isActive
+                              ? 'bg-forest-500/25 text-white'
+                              : 'text-white/70 hover:text-white hover:bg-white/10'
+                            }
+                          `}
+                        >
+                          {/* Active indicator */}
+                          {isActive && (
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-forest-400 rounded-r-full" />
+                          )}
+                          <Icon
+                            className={`w-4 h-4 flex-shrink-0 transition-colors ${isActive ? 'text-forest-400' : 'text-white/50 group-hover:text-white'
+                              }`}
+                            aria-hidden="true"
+                          />
+                          {item.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             );
           })}
-        </ul>
       </nav>
 
       {/* User role badge */}
