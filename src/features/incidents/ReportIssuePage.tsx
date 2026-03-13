@@ -12,7 +12,7 @@ import { AlertTriangle, CheckCircle, Camera, X, Bug, Droplets, Wrench, Package }
 const incidentSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   fieldId: z.string().min(1, 'Field is required'),
-  severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  severity: z.enum(['NORMAL', 'WARNING', 'CRITICAL']),
   description: z.string().min(10, 'Description must be at least 10 characters'),
 });
 
@@ -35,13 +35,14 @@ export const ReportIssuePage: React.FC = () => {
   const { register, handleSubmit, formState: { errors }, reset, watch } =
     useForm<IncidentFormData>({
       resolver: zodResolver(incidentSchema),
-      defaultValues: { fieldId: '', severity: 'LOW' as const },
+      defaultValues: { fieldId: '', severity: 'NORMAL' as const },
     });
 
   const onSubmit = async (data: IncidentFormData) => {
     try {
       await createIncident({
         title: data.title!,
+        type: data.title!, // sending title as type
         fieldId: data.fieldId!,
         severity: data.severity!,
         description: data.description!,
@@ -132,9 +133,9 @@ export const ReportIssuePage: React.FC = () => {
               <label className="label">How urgent?</label>
               <div className="grid grid-cols-3 gap-2 mt-2">
                 {[
-                  { value: 'LOW', label: 'Low', color: 'text-emerald-700 bg-emerald-50 border-emerald-300' },
-                  { value: 'MEDIUM', label: 'Medium', color: 'text-amber-700 bg-amber-50 border-amber-300' },
-                  { value: 'HIGH', label: 'High', color: 'text-red-700 bg-red-50 border-red-300' },
+                  { value: 'NORMAL', label: 'Normal', color: 'text-emerald-700 bg-emerald-50 border-emerald-300' },
+                  { value: 'WARNING', label: 'Warning', color: 'text-amber-700 bg-amber-50 border-amber-300' },
+                  { value: 'CRITICAL', label: 'Critical', color: 'text-red-700 bg-red-50 border-red-300' },
                 ].map((opt) => (
                   <label
                     key={opt.value}

@@ -27,12 +27,16 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({
 
   // Filter logs
   const filteredLogs = logs.filter((log) => {
+    const workerName = log.worker?.fullName || log.workerName || '';
+    const fieldName = log.field?.name || log.fieldName || '';
+    const activity = log.activity || log.activities?.join(' ') || '';
+    
     const matchesSearch =
-      log.workerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.activities.some((a) => a.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === 'all' || log.status === statusFilter;
+      workerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      activity.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || log.verificationStatus === statusFilter || log.status === statusFilter;
     const matchesField =
-      fieldFilter === 'all' || log.fieldName === fieldFilter;
+      fieldFilter === 'all' || fieldName === fieldFilter;
 
     return matchesSearch && matchesStatus && matchesField;
   });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGetUsersQuery, useCreateTaskMutation } from '../../services/api';
+import { useGetUsersQuery, useCreateUserMutation } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -12,7 +12,7 @@ type User = {
   id: string;
   email: string;
   fullName: string;
-  role: 'ADMIN' | 'MANAGER' | 'WORKER';
+  role: 'ADMIN' | 'MANAGER' | 'AGRONOMIST' | 'WORKER';
   isActive: boolean;
   createdAt: string;
 };
@@ -20,18 +20,20 @@ type User = {
 const roleBadgeColor: Record<string, string> = {
   ADMIN: 'bg-amber-400/20 text-amber-800 border border-amber-300',
   MANAGER: 'bg-blue-400/20 text-blue-800 border border-blue-300',
+  AGRONOMIST: 'bg-purple-400/20 text-purple-800 border border-purple-300',
   WORKER: 'bg-emerald-400/20 text-emerald-800 border border-emerald-300',
 };
 
 export const UsersPage: React.FC = () => {
   const { data: users, isLoading, error, refetch } = useGetUsersQuery(undefined);
+  const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
   const [showModal, setShowModal] = useState(false);
-  const [filter, setFilter] = useState<'ALL' | 'ADMIN' | 'MANAGER' | 'WORKER'>('ALL');
+  const [filter, setFilter] = useState<'ALL' | 'ADMIN' | 'MANAGER' | 'AGRONOMIST' | 'WORKER'>('ALL');
   const [newUser, setNewUser] = useState({
     email: '',
     password: '',
     fullName: '',
-    role: 'WORKER' as 'ADMIN' | 'MANAGER' | 'WORKER',
+    role: 'WORKER' as 'ADMIN' | 'MANAGER' | 'AGRONOMIST' | 'WORKER',
   });
 
   const filteredUsers = users?.filter((u) =>
@@ -62,18 +64,17 @@ export const UsersPage: React.FC = () => {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-2 flex-wrap">
-          {(['ALL', 'ADMIN', 'MANAGER', 'WORKER'] as const).map((role) => (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+          {(['ALL', 'ADMIN', 'MANAGER', 'AGRONOMIST', 'WORKER'] as const).map((role) => (
             <button
               key={role}
               onClick={() => setFilter(role)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all min-h-[44px] ${
-                filter === role
-                  ? 'bg-forest-500 text-white'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all min-h-[36px] whitespace-nowrap shrink-0 ${filter === role
+                ? 'bg-forest-500 text-white shadow-sm'
+                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
             >
-              {role === 'ALL' ? 'All Users' : role}
+              {role === 'ALL' ? 'All Users' : role.charAt(0) + role.slice(1).toLowerCase()}
             </button>
           ))}
         </div>
@@ -115,11 +116,10 @@ export const UsersPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="table-cell">
-                        <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${
-                          user.isActive
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                            : 'bg-gray-100 text-gray-600 border border-gray-200'
-                        }`}>
+                        <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${user.isActive
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : 'bg-gray-100 text-gray-600 border border-gray-200'
+                          }`}>
                           {user.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
@@ -193,17 +193,34 @@ export const UsersPage: React.FC = () => {
                 <select
                   value={newUser.role}
                   onChange={(e) => setNewUser({ ...newUser, role: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-400 min-h-[44px]"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-900 appearance-none focus:outline-none focus:ring-2 focus:ring-forest-400 focus:border-forest-400 min-h-[44px] cursor-pointer bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-10"
                 >
                   <option value="WORKER">Worker</option>
-                  <option value="MANAGER">Supervisor</option>
+                  <option value="AGRONOMIST">Agronomist</option>
+                  <option value="MANAGER">Manager</option>
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>
               <button
-                className="w-full py-2.5 bg-forest-500 text-white rounded-xl font-semibold hover:bg-forest-600 min-h-[44px]"
+                onClick={async () => {
+                  if (!newUser.email || !newUser.password || !newUser.fullName) {
+                    alert('Please fill in all fields');
+                    return;
+                  }
+                  try {
+                    await createUser(newUser).unwrap();
+                    setShowModal(false);
+                    setNewUser({ email: '', password: '', fullName: '', role: 'WORKER' });
+                    refetch();
+                  } catch (err) {
+                    console.error('Failed to create user:', err);
+                    alert('Failed to create user. Please try again.');
+                  }
+                }}
+                disabled={isCreating}
+                className="w-full py-2.5 bg-forest-500 text-white rounded-xl font-semibold hover:bg-forest-600 min-h-[44px] disabled:opacity-50"
               >
-                Create User
+                {isCreating ? 'Creating...' : 'Create User'}
               </button>
             </div>
           </div>

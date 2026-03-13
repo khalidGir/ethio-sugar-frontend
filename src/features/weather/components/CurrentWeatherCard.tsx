@@ -44,7 +44,7 @@ export const CurrentWeatherCard: React.FC<CurrentWeatherCardProps> = ({ weather 
           </div>
           <div>
             <p className="text-xs text-blue-200">Humidity</p>
-            <p className="font-semibold">{weather.humidity}%</p>
+            <p className="font-semibold">{weather.humidity?.toFixed(0) || '--'}%</p>
           </div>
         </div>
 
@@ -54,7 +54,7 @@ export const CurrentWeatherCard: React.FC<CurrentWeatherCardProps> = ({ weather 
           </div>
           <div>
             <p className="text-xs text-blue-200">Wind</p>
-            <p className="font-semibold">{weather.windSpeed} km/h</p>
+            <p className="font-semibold">{weather.windSpeed || '--'} km/h</p>
           </div>
         </div>
 
@@ -64,7 +64,7 @@ export const CurrentWeatherCard: React.FC<CurrentWeatherCardProps> = ({ weather 
           </div>
           <div>
             <p className="text-xs text-blue-200">Feels Like</p>
-            <p className="font-semibold">{weather.feelsLike.toFixed(1)}°C</p>
+            <p className="font-semibold">{weather.feelsLike?.toFixed(1) || weather.temperature?.toFixed(1) || '--'}°C</p>
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export const CurrentWeatherCard: React.FC<CurrentWeatherCardProps> = ({ weather 
           <div>
             <p className="text-xs text-blue-200">Updated</p>
             <p className="font-semibold text-xs">
-              {new Date(weather.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {weather.updatedAt ? new Date(weather.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
             </p>
           </div>
         </div>

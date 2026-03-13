@@ -10,19 +10,18 @@ import { ReportGenerator } from './components/ReportGenerator';
 import { ReportViewer } from './components/ReportViewer';
 import { DailyReport } from './components/DailyReport';
 import { GenerateReportFormData } from '../../schemas';
-import { FileText, Plus, Download, Clock, Calendar, BarChart3 } from 'lucide-react';
+import { FileText, Plus, Download, Clock, Calendar, BarChart3, CheckCircle } from 'lucide-react';
 
 export const ReportsDashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [showGenerator, setShowGenerator] = useState(false);
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [reportTypeFilter, setReportTypeFilter] = useState<string>('all');
-
-  const { data: reports = [], isLoading, error, refetch } = useGetReportsQuery();
-  const { data: scheduledReports } = useGetScheduledReportsQuery();
+  const { data, isLoading, error, refetch } = useGetReportsQuery(undefined);
+  const reports = Array.isArray(data) ? data : [];
+  const { data: scheduledReports } = useGetScheduledReportsQuery(undefined);
   const [generateReport] = useGenerateReportMutation();
-
-  const canGenerate = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'MANAGER';
+  const canGenerate = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   // Filter reports
   const filteredReports =
@@ -32,7 +31,7 @@ export const ReportsDashboardPage: React.FC = () => {
 
   const uniqueTypes = Array.from(new Set(reports.map((r) => r.type)));
 
-  const handleGenerate = async (data: GenerateReportFormData) => {
+  const handleGenerate = async (data: any) => {
     try {
       await generateReport(data).unwrap();
       setShowGenerator(false);
@@ -304,9 +303,4 @@ export const ReportsDashboardPage: React.FC = () => {
   );
 };
 
-// CheckCircle needs to be imported
-const CheckCircle = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-);
+

@@ -21,6 +21,15 @@ const routeLabels: Record<string, string> = {
   '/users': 'Users',
   '/my-tasks': 'My Tasks',
   '/report-issue': 'Report Issue',
+  '/soil': 'Soil Health',
+  '/weather': 'Weather',
+  '/daily-logs': 'Daily Logs',
+  '/fertilizer': 'Fertilizer',
+  '/crop-plans': 'Crop Planning',
+  '/reports': 'Agronomic Reports',
+  '/approvals': 'AI Approvals',
+  '/gallery': 'Image Gallery',
+  '/admin/audit-logs': 'Audit Logs',
 };
 
 export const Topbar: React.FC<TopbarProps> = ({

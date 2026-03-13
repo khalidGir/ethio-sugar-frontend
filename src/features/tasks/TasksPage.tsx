@@ -11,7 +11,7 @@ import { TaskCard } from '../../components/TaskCard';
 import { Layout } from '../../components/Layout';
 import { CheckSquare, ChevronDown, Plus, X, CheckCheck, Search } from 'lucide-react';
 
-type PriorityFilter = 'ALL' | 'CRITICAL' | 'WARNING' | 'NORMAL';
+type PriorityFilter = 'ALL' | 'HIGH' | 'MEDIUM' | 'LOW';
 
 const taskStatusBadge: Record<string, string> = {
   OPEN: 'bg-amber-100 text-amber-800 border border-amber-200',
@@ -19,16 +19,16 @@ const taskStatusBadge: Record<string, string> = {
 };
 
 const rowBorderByPriority: Record<string, string> = {
-  CRITICAL: 'border-l-4 border-l-red-500 bg-red-50/40',
-  WARNING: 'border-l-4 border-l-amber-400 bg-amber-50/30',
-  NORMAL: 'border-l-4 border-l-gray-200',
+  HIGH: 'border-l-4 border-l-red-500 bg-red-50/40',
+  MEDIUM: 'border-l-4 border-l-amber-400 bg-amber-50/30',
+  LOW: 'border-l-4 border-l-gray-200',
 };
 
 const priorityFilters: { label: string; value: PriorityFilter }[] = [
   { label: 'All Tasks', value: 'ALL' },
-  { label: '🔴 Critical', value: 'CRITICAL' },
-  { label: '🟡 Warning', value: 'WARNING' },
-  { label: '🟢 Normal', value: 'NORMAL' },
+  { label: '🔴 High', value: 'HIGH' },
+  { label: '🟡 Medium', value: 'MEDIUM' },
+  { label: '🟢 Low', value: 'LOW' },
 ];
 
 export const TasksPage: React.FC = () => {
@@ -50,7 +50,7 @@ export const TasksPage: React.FC = () => {
     description: '',
     fieldId: '',
     assignedToId: '',
-    priority: 'NORMAL' as 'NORMAL' | 'WARNING' | 'CRITICAL',
+    priority: 'LOW' as 'LOW' | 'MEDIUM' | 'HIGH',
   });
 
   const tasks = user?.role === 'WORKER' ? myTasks : allTasks;
@@ -94,11 +94,11 @@ export const TasksPage: React.FC = () => {
         title: newTask.title,
         description: newTask.description,
         fieldId: newTask.fieldId,
-        assignedToId: newTask.assignedToId || undefined,
-        priority: 'MEDIUM',
+        assignedTo: newTask.assignedToId || undefined,
+        priority: newTask.priority,
       }).unwrap();
       setShowCreateModal(false);
-      setNewTask({ title: '', description: '', fieldId: '', assignedToId: '', priority: 'NORMAL' });
+      setNewTask({ title: '', description: '', fieldId: '', assignedToId: '', priority: 'LOW' });
       refetch();
     } catch (err) {
       console.error('Failed to create task:', err);
@@ -271,8 +271,8 @@ export const TasksPage: React.FC = () => {
                 </thead>
                 <tbody>
                   {filteredTasks.map((task) => {
-                    const priorityKey = task.priority?.toUpperCase() ?? 'NORMAL';
-                    const rowClass = rowBorderByPriority[priorityKey] ?? rowBorderByPriority.NORMAL;
+                    const priorityKey = task.priority?.toUpperCase() ?? 'LOW';
+                    const rowClass = rowBorderByPriority[priorityKey] ?? rowBorderByPriority.LOW;
                     const isSelected = selectedTasks.has(task.id);
 
                     return (
@@ -344,20 +344,20 @@ export const TasksPage: React.FC = () => {
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Priority</p>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: 'NORMAL', label: 'Normal', color: 'bg-emerald-50 border-emerald-300 text-emerald-700' },
-                  { value: 'WARNING', label: 'Warning', color: 'bg-amber-50 border-amber-300 text-amber-700' },
-                  { value: 'CRITICAL', label: 'Critical', color: 'bg-red-50 border-red-300 text-red-700' },
+                  { value: 'LOW', label: 'Low', color: 'bg-emerald-50 border-emerald-300 text-emerald-700' },
+                  { value: 'MEDIUM', label: 'Medium', color: 'bg-amber-50 border-amber-300 text-amber-700' },
+                  { value: 'HIGH', label: 'High', color: 'bg-red-50 border-red-300 text-red-700' },
                 ].map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => setNewTask({ ...newTask, priority: opt.value as any })}
                     className={`py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
                       newTask.priority === opt.value
-                        ? `border-2 ${opt.color} ring-2 ring-offset-1 ring-${opt.value === 'CRITICAL' ? 'red' : opt.value === 'WARNING' ? 'amber' : 'emerald'}-400`
+                        ? `border-2 ${opt.color} ring-2 ring-offset-1 ring-${opt.value === 'HIGH' ? 'red' : opt.value === 'MEDIUM' ? 'amber' : 'emerald'}-400`
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                     }`}
                   >
-                    {opt.value === 'CRITICAL' ? '🔴' : opt.value === 'WARNING' ? '🟡' : '🟢'} {opt.label}
+                    {opt.value === 'HIGH' ? '🔴' : opt.value === 'MEDIUM' ? '🟡' : '🟢'} {opt.label}
                   </button>
                 ))}
               </div>

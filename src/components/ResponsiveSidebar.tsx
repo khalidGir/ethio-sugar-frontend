@@ -47,6 +47,12 @@ const menuItems = [
     roles: ['ADMIN', 'MANAGER'],
   },
   {
+    path: '/daily-logs',
+    label: 'Daily Logs',
+    icon: ClipboardCheck,
+    roles: ['ADMIN', 'MANAGER'],
+  },
+  {
     path: '/incidents',
     label: 'Incidents',
     icon: AlertTriangle,
@@ -56,12 +62,12 @@ const menuItems = [
     path: '/fields',
     label: 'Fields',
     icon: MapPin,
-    roles: ['ADMIN', 'MANAGER', 'WORKER', 'AGRONOMIST'],
+    roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
   },
   // New menu items for Phase 1 Critical Gaps
   {
     path: '/soil',
-    label: 'Soil Management',
+    label: 'Soil Health',
     icon: Beaker,
     roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
   },
@@ -69,13 +75,7 @@ const menuItems = [
     path: '/weather',
     label: 'Weather',
     icon: Cloud,
-    roles: ['ADMIN', 'MANAGER', 'WORKER', 'AGRONOMIST'],
-  },
-  {
-    path: '/daily-logs',
-    label: 'Daily Logs',
-    icon: ClipboardCheck,
-    roles: ['ADMIN', 'MANAGER', 'WORKER', 'AGRONOMIST'],
+    roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
   },
   {
     path: '/fertilizer',
@@ -91,13 +91,13 @@ const menuItems = [
   },
   {
     path: '/reports',
-    label: 'Reports',
+    label: 'Agronomic Reports',
     icon: BarChart3,
     roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
   },
   {
     path: '/approvals',
-    label: 'Approvals',
+    label: 'AI Approvals',
     icon: CheckCircle,
     roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
   },
@@ -105,7 +105,7 @@ const menuItems = [
     path: '/gallery',
     label: 'Image Gallery',
     icon: ImageIcon,
-    roles: ['ADMIN', 'MANAGER', 'WORKER', 'AGRONOMIST'],
+    roles: ['ADMIN', 'MANAGER', 'AGRONOMIST'],
   },
   {
     path: '/admin/audit-logs',
@@ -121,9 +121,27 @@ const menuItems = [
     roles: ['WORKER'],
   },
   {
+    path: '/daily-logs',
+    label: 'Daily Logs',
+    icon: ClipboardCheck,
+    roles: ['WORKER'],
+  },
+  {
     path: '/report-issue',
     label: 'Report Issue',
     icon: AlertTriangle,
+    roles: ['WORKER'],
+  },
+  {
+    path: '/weather',
+    label: 'Weather',
+    icon: Cloud,
+    roles: ['WORKER'],
+  },
+  {
+    path: '/gallery',
+    label: 'Field Photos',
+    icon: ImageIcon,
     roles: ['WORKER'],
   },
 ];

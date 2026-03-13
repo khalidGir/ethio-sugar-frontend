@@ -552,6 +552,7 @@ export interface Field {
   location?: string;
   soilType?: string;
   irrigationType?: string;
+  cropType?: string;
   status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
   createdAt: string;
   updatedAt: string;
@@ -612,7 +613,8 @@ export interface CreateIncidentDto {
   title: string;
   description: string;
   fieldId?: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  type: string;
+  severity: 'NORMAL' | 'WARNING' | 'CRITICAL';
 }
 
 export interface IrrigationLog {

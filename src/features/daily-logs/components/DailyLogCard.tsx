@@ -27,7 +27,14 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({
     REJECTED: XCircle,
   };
 
-  const StatusIcon = statusIcons[log.status];
+  const workerName = log.worker?.fullName || log.workerName || 'Unknown Worker';
+  const fieldName = log.field?.name || log.fieldName;
+  const status = log.verificationStatus || log.status || 'PENDING';
+  const activity = log.activity || log.activities?.[0] || 'No activity';
+  const hoursSpent = log.hoursSpent || log.hoursWorked || 0;
+  const loggedAt = log.loggedAt || log.date;
+
+  const StatusIcon = statusIcons[status as keyof typeof statusIcons] || AlertCircle;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
@@ -38,79 +45,65 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({
             <User className="w-5 h-5 text-forest-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{log.workerName}</h3>
+            <h3 className="font-semibold text-gray-900">{workerName}</h3>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Calendar className="w-4 h-4" />
-              {new Date(log.date).toLocaleDateString('en-US', {
+              {loggedAt ? new Date(loggedAt).toLocaleDateString('en-US', {
                 weekday: 'short',
                 month: 'short',
                 day: 'numeric',
-              })}
+              }) : 'N/A'}
             </div>
           </div>
         </div>
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusColors[log.status]}`}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusColors[status as keyof typeof statusColors]}`}
         >
           <StatusIcon className="w-3.5 h-3.5" />
-          {log.status}
+          {status}
         </span>
       </div>
 
       {/* Field Info */}
-      {log.fieldName && (
+      {fieldName && (
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
           <MapPin className="w-4 h-4" />
-          {log.fieldName}
+          {fieldName}
         </div>
       )}
 
       {/* Time Worked */}
       <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
         <Clock className="w-4 h-4" />
-        {log.startTime} - {log.endTime} ({log.hoursWorked} hours)
+        {hoursSpent} hours
       </div>
 
       {/* Activities */}
       <div className="mb-3">
         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-          Activities
+          Activity
         </p>
-        <div className="flex flex-wrap gap-1.5">
-          {log.activities.slice(0, 3).map((activity, index) => (
-            <span
-              key={index}
-              className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium"
-            >
-              {activity}
-            </span>
-          ))}
-          {log.activities.length > 3 && (
-            <span className="px-2.5 py-1 bg-gray-100 text-gray-500 rounded-md text-xs">
-              +{log.activities.length - 3} more
-            </span>
-          )}
-        </div>
+        <p className="text-sm text-gray-700">{activity}</p>
       </div>
 
       {/* Notes */}
-      {log.notes && (
+      {log.observations && (
         <div className="mb-3">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
             Notes
           </p>
-          <p className="text-sm text-gray-600 line-clamp-2">{log.notes}</p>
+          <p className="text-sm text-gray-600 line-clamp-2">{log.observations}</p>
         </div>
       )}
 
       {/* Photos */}
-      {log.photoUrls && log.photoUrls.length > 0 && (
+      {log.photos && log.photos.length > 0 && (
         <div className="mb-3">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
             Photos
           </p>
           <div className="flex gap-2">
-            {log.photoUrls.slice(0, 3).map((url, index) => (
+            {log.photos.slice(0, 3).map((url, index) => (
               <img
                 key={index}
                 src={url}
@@ -118,9 +111,9 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({
                 className="w-16 h-16 rounded-lg object-cover border border-gray-200"
               />
             ))}
-            {log.photoUrls.length > 3 && (
+            {log.photos.length > 3 && (
               <div className="w-16 h-16 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-xs text-gray-500 font-medium">
-                +{log.photoUrls.length - 3}
+                +{log.photos.length - 3}
               </div>
             )}
           </div>
@@ -128,7 +121,7 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({
       )}
 
       {/* Rejection Reason */}
-      {log.status === 'REJECTED' && log.rejectionReason && (
+      {status === 'REJECTED' && log.rejectionReason && (
         <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-xs font-medium text-red-700 mb-1">Rejection Reason:</p>
           <p className="text-sm text-red-600">{log.rejectionReason}</p>
@@ -145,7 +138,7 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({
             View Details
           </button>
         )}
-        {showVerification && log.status === 'PENDING' && onVerify && (
+        {showVerification && status === 'PENDING' && onVerify && (
           <>
             <button
               onClick={() => onVerify(log.id, 'VERIFIED')}

@@ -18,8 +18,9 @@ import { AlertTriangle, Plus, ChevronDown, Search, X } from 'lucide-react';
 const incidentSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   fieldId: z.string().min(1, 'Field is required'),
-  severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
+  type: z.string().min(1, 'Incident type is required'),
+  severity: z.enum(['NORMAL', 'WARNING', 'CRITICAL']),
+  description: z.string().min(1, 'Description is required'),
 });
 
 type IncidentFormData = z.infer<typeof incidentSchema>;
@@ -50,6 +51,7 @@ export const IncidentsPage: React.FC = () => {
   const [createIncident] = useCreateIncidentMutation();
   const [updateIncidentStatus] = useUpdateIncidentStatusMutation();
   const [search, setSearch] = useState('');
+  const [customType, setCustomType] = useState('');
 
   const fields = apiFields;
   const incidents = apiIncidents;
@@ -65,17 +67,23 @@ export const IncidentsPage: React.FC = () => {
     );
   });
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } =
+  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting }, reset } =
     useForm<IncidentFormData>({ resolver: zodResolver(incidentSchema) });
+
+  const selectedType = watch('type');
+  const showCustomType = selectedType === 'Other';
 
   const onSubmit = async (data: IncidentFormData) => {
     try {
+      const typeValue = data.type === 'Other' ? customType || 'Other' : data.type;
       await createIncident({
         title: data.title!,
         fieldId: data.fieldId!,
+        type: typeValue,
         severity: data.severity!,
         description: data.description!,
       }).unwrap();
+      setCustomType('');
       reset();
       refetch();
     } catch { }
@@ -141,10 +149,22 @@ export const IncidentsPage: React.FC = () => {
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
+                <label htmlFor="title" className="label">Title</label>
+                <input
+                  id="title"
+                  type="text"
+                  {...register('title')}
+                  className="input-field"
+                  placeholder="Brief incident title"
+                />
+                {errors.title && <p className="field-error">⚠ {errors.title.message}</p>}
+              </div>
+
+              <div>
                 <label htmlFor="fieldId" className="label">Field</label>
                 <SelectWrapper>
                   <select id="fieldId" {...register('fieldId')} className="select-field">
-                    <option value="">Select a field</option>
+                    <option value="a1b2c3d4-e5f6-7890-abcd-ef1234567890">Field A - North</option>
                     {fields?.map((f) => (
                       <option key={f.id} value={f.id}>{f.name}</option>
                     ))}
@@ -154,28 +174,37 @@ export const IncidentsPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="title" className="label">Title</label>
+                <label htmlFor="type" className="label">Type</label>
                 <SelectWrapper>
-                  <select id="title" {...register('title')} className="select-field">
-                    <option value="">Select type</option>
+                  <select id="type" {...register('type')} className="select-field">
                     <option value="Pest Infestation">Pest Infestation</option>
                     <option value="Disease Outbreak">Disease Outbreak</option>
                     <option value="Irrigation Issue">Irrigation Issue</option>
                     <option value="Equipment Failure">Equipment Failure</option>
-                    <option value="Other">Other</option>
+                    <option value="Weather Damage">Weather Damage</option>
+                    <option value="Soil Issue">Soil Issue</option>
+                    <option value="Other">Other (Specify)</option>
                   </select>
                 </SelectWrapper>
-                {errors.title && <p className="field-error">⚠ {errors.title.message}</p>}
+                {showCustomType && (
+                  <input
+                    type="text"
+                    value={customType}
+                    onChange={(e) => setCustomType(e.target.value)}
+                    className="input-field mt-2"
+                    placeholder="Please specify..."
+                    autoFocus
+                  />
+                )}
+                {errors.type && <p className="field-error">⚠ {errors.type.message}</p>}
               </div>
 
               <div>
                 <label htmlFor="severity" className="label">Severity</label>
                 <SelectWrapper>
                   <select id="severity" {...register('severity')} className="select-field">
-                    <option value="">Select severity</option>
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
+                    <option value="NORMAL">Normal</option>
+                    <option value="WARNING">Warning</option>
                     <option value="CRITICAL">Critical</option>
                   </select>
                 </SelectWrapper>
